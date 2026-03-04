@@ -1,0 +1,89 @@
+# pyproject.toml
+#
+# Poetry project manifest.
+# Poetry is Python's modern dependency manager — like npm for JavaScript.
+#
+# Common commands (run from the backend/ directory):
+#   poetry install                              → install all dependencies
+#   poetry run pytest                          → run tests
+#   poetry run uvicorn app.main:app --reload   → run dev server with auto-reload
+#   poetry add <package>                       → add a new dependency
+
+[tool.poetry]
+name         = "steelworks-ops-backend"
+version      = "0.1.0"
+description  = "Operations Analytics API — aligns Production, Inspection, and Shipping data by Lot ID."
+authors      = ["Your Name <your.email@example.com>"]   # ← Change this to your name
+license      = "MIT"
+package-mode = false   # This is an application, not a distributable package
+
+# ── Runtime dependencies ──────────────────────────────────────────────────────
+[tool.poetry.dependencies]
+python           = "^3.11"
+fastapi          = "^0.111.0"    # Web framework
+uvicorn          = {extras = ["standard"], version = "^0.30.0"}  # ASGI server
+sqlalchemy       = "^2.0.0"     # ORM (Object-Relational Mapper)
+psycopg2-binary  = "^2.9.9"     # PostgreSQL adapter
+pydantic-settings = "^2.3.0"   # Typed settings from environment variables
+python-dotenv    = "^1.0.0"     # .env file loading
+
+# ── Development dependencies ───────────────────────────────────────────────────
+# These are only installed locally (not in Docker).
+[tool.poetry.group.dev.dependencies]
+pytest           = "^8.2.0"    # Test runner
+pytest-asyncio   = "^0.23.0"  # Async test support
+httpx            = "^0.27.0"  # HTTP client used by FastAPI's TestClient
+pytest-cov       = "^5.0.0"   # Code coverage reports
+ruff             = "^0.5.0"   # Fast Python linter and formatter (replaces flake8 + black + isort)
+mypy             = "^1.10.0"  # Static type checker
+
+[build-system]
+requires      = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# ── pytest configuration ───────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths  = ["tests"]         # Where pytest looks for test files
+asyncio_mode = "auto"          # Automatically handle async test functions
+addopts    = "-v --tb=short"   # Verbose output; short traceback on failures
+
+# ── Ruff — linter and formatter ────────────────────────────────────────────────
+# Ruff replaces flake8, black, and isort in a single fast tool.
+# Docs: https://docs.astral.sh/ruff/
+[tool.ruff]
+line-length    = 100   # Max line length (black default is 88; 100 suits wide monitors)
+target-version = "py311"
+
+[tool.ruff.lint]
+# Rule sets enabled:
+#   E  — pycodestyle errors (indentation, whitespace, blank lines)
+#   F  — pyflakes (undefined names, unused imports)
+#   I  — isort (import ordering)
+#   UP — pyupgrade (modernise syntax for the target Python version)
+select = ["E", "F", "I", "UP"]
+
+# Rules to ignore:
+#   E501 — line too long (ruff format handles line length; linter shouldn't double-flag)
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+# Group first-party imports separately from stdlib and third-party.
+known-first-party = ["app"]
+
+# ── Mypy — static type checker ─────────────────────────────────────────────────
+# Mypy checks type annotations without running the code.
+# Docs: https://mypy.readthedocs.io/
+[tool.mypy]
+python_version         = "3.11"
+# Don't error on third-party packages that lack type stubs (e.g. sqlalchemy stubs)
+ignore_missing_imports = true
+# Warn when a function has no return type annotation
+warn_return_any        = false
+# Don't require every function to be annotated (too strict for a new project)
+disallow_untyped_defs  = false
+# Plugins:
+#   pydantic.mypy         — teaches mypy that Settings() is valid even without explicit
+#                           constructor args (pydantic reads field values from env vars)
+#   sqlalchemy.ext.mypy.plugin — teaches mypy that ORM instance attributes (e.g. lot.lot_id)
+#                           return the underlying Python type (int), not Column[int]
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]

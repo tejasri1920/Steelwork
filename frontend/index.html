@@ -1,0 +1,40 @@
+<!doctype html>
+<!--
+  index.html — Root HTML page for the Vite + React application.
+
+  Vite uses this file as the entry point for the dev server and production build.
+  The <div id="root"> is the mount point where React renders the entire app.
+  Vite injects the compiled JavaScript bundle via the <script type="module"> tag.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!--
+      viewport meta tag: makes the page responsive on mobile devices.
+      width=device-width: use the device's actual width (not 980px default).
+      initial-scale=1.0: no zoom on load.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- App icon (favicon) — replace with the actual steelworks icon if available -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <title>Steelworks Ops Analytics</title>
+  </head>
+  <body>
+    <!--
+      React mounts the entire application inside this div.
+      If JavaScript is disabled, the user sees an empty page.
+      For this internal tool, that is acceptable.
+    -->
+    <div id="root"></div>
+
+    <!--
+      Vite's module entry point.
+      In development: served directly by Vite's dev server.
+      In production: replaced by the hashed bundle filename (e.g. assets/index-abc123.js).
+    -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

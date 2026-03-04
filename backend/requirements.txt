@@ -1,0 +1,19 @@
+# backend/requirements.txt
+#
+# Production dependencies for the Docker image.
+# Used by the Dockerfile's `pip install -r requirements.txt` step.
+#
+# Keep in sync with [tool.poetry.dependencies] in pyproject.toml.
+# For local development, use Poetry instead: `poetry install`
+#
+# Why two files?
+#   Poetry manages the dev environment (including pytest, httpx, etc.).
+#   requirements.txt is used only in Docker where we want the minimal
+#   set of runtime-only dependencies.
+
+fastapi>=0.111.0          # Web framework: defines routes, validates request/response types
+uvicorn[standard]>=0.30.0 # ASGI server: actually runs the FastAPI app (like Node.js for Python)
+sqlalchemy>=2.0.0         # ORM: maps Python classes to database tables
+psycopg2-binary>=2.9.9    # PostgreSQL driver: lets SQLAlchemy talk to Postgres (binary = no compilation needed)
+pydantic-settings>=2.3.0  # Reads .env / environment variables into a typed Settings class
+python-dotenv>=1.0.0      # Loads .env file into environment (used by pydantic-settings)

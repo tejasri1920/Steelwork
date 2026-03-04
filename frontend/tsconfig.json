@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    // ── Target and module format ──────────────────────────────────────────────
+    "target": "ES2020",             // Compile to ES2020 — supported by all modern browsers
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],  // Browser APIs + modern JS
+    "module": "ESNext",             // Use ES modules (import/export)
+    "moduleResolution": "bundler",  // Let Vite resolve modules (modern bundler mode)
+
+    // ── React ─────────────────────────────────────────────────────────────────
+    "jsx": "react-jsx",             // Use the new JSX transform (no need to import React)
+
+    // ── Type safety ───────────────────────────────────────────────────────────
+    "strict": true,                 // Enable all strict type checks
+    "noUnusedLocals": true,         // Error on declared but unused variables
+    "noUnusedParameters": true,     // Error on declared but unused function parameters
+    "noFallthroughCasesInSwitch": true,  // Error on switch cases without break/return
+
+    // ── Module interop ────────────────────────────────────────────────────────
+    "allowImportingTsExtensions": true, // Allow `import './foo.ts'` in source
+    "resolveJsonModule": true,      // Allow importing .json files
+    "isolatedModules": true,        // Required for Vite's single-file transform
+    "esModuleInterop": true,        // Allow default imports from CommonJS modules
+    "allowSyntheticDefaultImports": true,
+
+    // ── Output ────────────────────────────────────────────────────────────────
+    // noEmit=true means TypeScript only type-checks, never writes .js files.
+    // Vite handles the actual compilation and bundling.
+    "noEmit": true,
+
+    // ── Paths ─────────────────────────────────────────────────────────────────
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]    // Alias: `@/api/client` → `./src/api/client`
+    }
+  },
+  "include": ["src", "tests"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,20 @@
+/*
+ * src/index.css
+ *
+ * Global CSS entry point.
+ *
+ * Tailwind CSS directives:
+ *   @tailwind base      — Tailwind's base/reset styles (normalizes browser defaults)
+ *   @tailwind components — Tailwind's component classes (btn, card, etc. if using plugins)
+ *   @tailwind utilities  — All the utility classes (flex, text-lg, bg-blue-500, etc.)
+ *
+ * This file is imported once in src/main.tsx and applies to the entire app.
+ * Add custom global styles below the Tailwind directives.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Custom global styles ──────────────────────────────────────────────────── */
+/* Add project-wide styles here. Prefer Tailwind utilities in components instead. */

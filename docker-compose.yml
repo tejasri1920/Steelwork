@@ -1,0 +1,94 @@
+# docker-compose.yml
+#
+# Orchestrates three containers that form the complete application stack:
+#
+#   db       – PostgreSQL 16: stores all lots, records, and completeness data.
+#   backend  – FastAPI (Python): serves the REST API on port 8000.
+#   frontend – React (built by Node, served by Nginx): serves the UI on port 3000.
+#
+# How to use:
+#   1. Copy .env.example to .env and fill in your values.
+#   2. docker compose up --build      ← first run (builds images)
+#   3. docker compose up              ← subsequent runs (reuses images)
+#   4. docker compose down -v         ← stop and wipe DB data (clean slate)
+#
+# Why Docker Compose?
+#   One command starts all three services in the correct order with the
+#   correct network connections — no manual IP configuration needed.
+
+services:
+
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  # PostgreSQL is the source of truth for all operational data.
+  # The "db" hostname is used by the backend's DATABASE_URL env var.
+  db:
+    image: postgres:16-alpine        # Alpine = smaller image (~50 MB vs ~400 MB)
+    restart: unless-stopped          # Restart if it crashes; stop only on explicit `down`
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB}
+    volumes:
+      # Persist data between `docker compose down` and `docker compose up`.
+      # Without this, the DB is wiped every time the container stops.
+      - postgres_data:/var/lib/postgresql/data
+
+      # These SQL files run automatically on first container start (alphabetically).
+      # PostgreSQL only runs init files once — when the data volume is empty.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    ports:
+      # Expose Postgres to your local machine so you can use tools like DBeaver.
+      # ${POSTGRES_PORT:-5432} means: use POSTGRES_PORT env var, or default to 5432.
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # The backend waits for this check to pass before starting.
+      # pg_isready returns 0 (success) only when Postgres is ready to accept connections.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
+  # The REST API layer. Reads from PostgreSQL and serves JSON to the frontend.
+  backend:
+    build:
+      context: ./backend           # Docker looks for backend/Dockerfile
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # These are read by backend/app/config.py via pydantic-settings.
+      DATABASE_URL:    postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      LOG_LEVEL:       ${LOG_LEVEL:-info}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        # "service_healthy" means Docker waits for the db healthcheck to pass.
+        # Without this, the backend might start before Postgres is ready and crash.
+        condition: service_healthy
+
+  # ── React Frontend (Nginx) ─────────────────────────────────────────────────
+  # Vite builds the React app into static files; Nginx serves them.
+  # Nginx also proxies /api/* requests to the backend container.
+  frontend:
+    build:
+      context: ./frontend          # Docker looks for frontend/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        # VITE_API_BASE_URL is baked into the JS bundle at build time.
+        # Empty string "" means the frontend uses the same origin for /api/* calls,
+        # which Nginx then proxies to the backend.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"  # Nginx listens on 80 inside the container
+    depends_on:
+      - backend                      # Start frontend after backend is up
+
+# ── Named Volumes ──────────────────────────────────────────────────────────────
+# Named volumes outlive containers — data persists across `docker compose restart`.
+# Run `docker compose down -v` to also remove the volume (full reset).
+volumes:
+  postgres_data:
