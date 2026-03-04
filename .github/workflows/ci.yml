@@ -1,0 +1,66 @@
+# .github/workflows/ci.yml
+#
+# Continuous Integration workflow.
+# Triggered on every pull request (creation and subsequent pushes).
+#
+# What it does:
+#   1. Checks out the code.
+#   2. Sets up Python 3.11.
+#   3. Installs Poetry and backend dependencies (including dev tools).
+#   4. Adds the Poetry virtualenv bin/ to PATH so pre-commit local hooks
+#      can find ruff, mypy, and pytest without any extra configuration.
+#   5. Installs pre-commit and runs all hooks against every file in the repo.
+#
+# Why pre-commit in CI?
+#   Running the same pre-commit hooks locally and in CI guarantees that
+#   the checks are identical regardless of environment. There is no
+#   separate "CI lint script" to keep in sync with the local hooks.
+
+name: CI
+
+on:
+  pull_request:           # Runs on PR creation and every subsequent push to the PR branch
+    branches:
+      - "**"              # Against any target branch
+
+jobs:
+  pre-commit:
+    name: Pre-commit checks (ruff · mypy · pytest)
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python ────────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ── 3. Poetry + backend deps ─────────────────────────────────────────────
+      # Install Poetry itself via pip (simple, no external action required).
+      # Then install all backend dependencies including the dev group
+      # (ruff, mypy, pytest, pytest-cov, etc.).
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: poetry install --with dev
+
+      # ── 4. Expose Poetry venv to PATH ────────────────────────────────────────
+      # pre-commit local hooks use language: system, meaning they resolve
+      # tools from PATH. Adding the venv's bin/ directory makes ruff, mypy,
+      # and pytest available without activating the venv explicitly.
+      - name: Add Poetry virtualenv to PATH
+        working-directory: backend
+        run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
+
+      # ── 5. pre-commit ────────────────────────────────────────────────────────
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit on all files
+        run: pre-commit run --all-files
