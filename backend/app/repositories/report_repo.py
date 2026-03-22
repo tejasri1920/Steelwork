@@ -80,10 +80,10 @@ def get_lot_summary(db: Session) -> list[dict]:
 
     result = []
     for lot in lots:
-        prods = lot.production_records    # List[ProductionRecord] (may be empty)
-        insps = lot.inspection_records    # List[InspectionRecord]  (may be empty)
-        ships = lot.shipping_records      # List[ShippingRecord]    (may be empty)
-        dc = lot.data_completeness        # DataCompleteness | None
+        prods = lot.production_records  # List[ProductionRecord] (may be empty)
+        insps = lot.inspection_records  # List[InspectionRecord]  (may be empty)
+        ships = lot.shipping_records  # List[ShippingRecord]    (may be empty)
+        dc = lot.data_completeness  # DataCompleteness | None
 
         # ── Aggregate production columns ────────────────────────────────────
         # None when there are no production records (mirrors SQL LEFT JOIN + SUM/AGG
@@ -102,7 +102,9 @@ def get_lot_summary(db: Session) -> list[dict]:
 
         # ── Aggregate shipping columns ──────────────────────────────────────
         # MAX(shipment_status) lexicographically — consistent with the PostgreSQL view.
-        latest_status: str | None = max((s.shipment_status for s in ships), default=None) if ships else None
+        latest_status: str | None = (
+            max((s.shipment_status for s in ships), default=None) if ships else None
+        )
 
         result.append(
             {
@@ -282,9 +284,7 @@ def get_line_issues(db: Session) -> list[dict]:
     # Aggregate in Python by production_line.
     # defaultdict avoids a key-existence check on every iteration.
     # Time: O(R) where R = number of (prod, insp) pairs.
-    line_stats: dict[str, dict] = defaultdict(
-        lambda: {"total_inspections": 0, "total_issues": 0}
-    )
+    line_stats: dict[str, dict] = defaultdict(lambda: {"total_inspections": 0, "total_issues": 0})
 
     for prod, insp in rows:
         line = prod.production_line

@@ -189,8 +189,8 @@ class TestIncompleteLots:
         response = client.get("/api/v1/reports/incomplete-lots")
         assert response.status_code == 200
         rows = response.json()
-        assert float(rows[0]["overall_completeness"]) == 0    # LOT-D
-        assert float(rows[1]["overall_completeness"]) == 67   # LOT-B
+        assert float(rows[0]["overall_completeness"]) == 0  # LOT-D
+        assert float(rows[1]["overall_completeness"]) == 67  # LOT-B
 
     def test_incomplete_lots_flags_are_correct_for_lot_b(
         self, client: TestClient, seeded_db

@@ -91,10 +91,10 @@ def get_lot_by_code(db: Session, lot_code: str) -> Lot | None:
     return (
         db.query(Lot)
         .options(
-            joinedload(Lot.production_records),   # AC9: production detail
-            joinedload(Lot.inspection_records),   # AC9: inspection detail
-            joinedload(Lot.shipping_records),     # AC9: shipping detail
-            joinedload(Lot.data_completeness),    # AC4/AC10: completeness score
+            joinedload(Lot.production_records),  # AC9: production detail
+            joinedload(Lot.inspection_records),  # AC9: inspection detail
+            joinedload(Lot.shipping_records),  # AC9: shipping detail
+            joinedload(Lot.data_completeness),  # AC4/AC10: completeness score
         )
         .filter(Lot.lot_code == lot_code)
         .first()  # Returns None if the lot_code doesn't exist → router raises 404
@@ -128,8 +128,12 @@ def refresh_data_completeness(db: Session, lot_id: int) -> None:
     """
     # Three EXISTS-style checks — one per data domain.
     # .first() returns the object if ≥1 row exists, or None if no rows → bool.
-    has_prod = db.query(ProductionRecord).filter(ProductionRecord.lot_id == lot_id).first() is not None
-    has_insp = db.query(InspectionRecord).filter(InspectionRecord.lot_id == lot_id).first() is not None
+    has_prod = (
+        db.query(ProductionRecord).filter(ProductionRecord.lot_id == lot_id).first() is not None
+    )
+    has_insp = (
+        db.query(InspectionRecord).filter(InspectionRecord.lot_id == lot_id).first() is not None
+    )
     has_ship = db.query(ShippingRecord).filter(ShippingRecord.lot_id == lot_id).first() is not None
 
     # Mirror the PostgreSQL trigger formula: ROUND((prod+insp+ship) / 3.0 * 100)
@@ -150,9 +154,12 @@ def refresh_data_completeness(db: Session, lot_id: int) -> None:
         db.add(dc)
     else:
         # Update the existing row in-place.
-        dc.has_production_data = has_prod
-        dc.has_inspection_data = has_insp
-        dc.has_shipping_data = has_ship
-        dc.overall_completeness = Decimal(str(score))
+        # type: ignore[assignment] — mypy sees Column[bool]/Column[Decimal] on the
+        # left-hand side, but the SQLAlchemy mypy plugin maps ORM attribute assignment
+        # to the underlying Python type at runtime. The assignments are correct.
+        dc.has_production_data = has_prod  # type: ignore[assignment]
+        dc.has_inspection_data = has_insp  # type: ignore[assignment]
+        dc.has_shipping_data = has_ship  # type: ignore[assignment]
+        dc.overall_completeness = Decimal(str(score))  # type: ignore[assignment]
 
     db.commit()  # Flush to the in-memory SQLite DB; connection is not closed here.
