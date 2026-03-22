@@ -154,9 +154,9 @@ def refresh_data_completeness(db: Session, lot_id: int) -> None:
         db.add(dc)
     else:
         # Update the existing row in-place.
-        # type: ignore[assignment] — mypy sees Column[bool]/Column[Decimal] on the
-        # left-hand side, but the SQLAlchemy mypy plugin maps ORM attribute assignment
-        # to the underlying Python type at runtime. The assignments are correct.
+        # mypy sees Column[bool]/Column[Decimal] on the left-hand side, but the
+        # SQLAlchemy mypy plugin maps ORM attribute assignment to the underlying
+        # Python type at runtime. The assignments are correct; suppress with inline ignore.
         dc.has_production_data = has_prod  # type: ignore[assignment]
         dc.has_inspection_data = has_insp  # type: ignore[assignment]
         dc.has_shipping_data = has_ship  # type: ignore[assignment]
