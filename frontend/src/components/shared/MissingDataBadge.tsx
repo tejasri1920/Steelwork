@@ -29,16 +29,20 @@ interface MissingDataBadgeProps {
  * MissingDataBadge — renders a warning badge if the domain is missing.
  *
  * Returns null (renders nothing) when hasDomain is true.
- *
- * Suggested styling: small red or orange pill with the domain name.
- *   Example: <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded">
- *               No {domain}
- *            </span>
+ * Returns a small red pill badge when hasDomain is false.
  *
  * @param props - domain name, hasDomain flag
+ *
+ * AC4: Visually highlights which data domain is absent for a lot.
  */
-export default function MissingDataBadge(_props: MissingDataBadgeProps) {
-  // TODO: If hasDomain is true, return null.
-  // Otherwise, render a small warning badge with the domain name.
-  throw new Error('TODO: Implement MissingDataBadge UI');
+export default function MissingDataBadge({ domain, hasDomain }: MissingDataBadgeProps) {
+  // Data is present — render nothing so the cell stays clean.
+  if (hasDomain) return null;
+
+  // Data is missing — show a compact warning pill.
+  return (
+    <span className="inline-block bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">
+      No {domain}
+    </span>
+  );
 }

@@ -14,7 +14,7 @@
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -114,8 +114,25 @@ def get_lot(
     AC2: Retrieve a specific lot by lot_code.
     AC9: Full drill-down including production, inspection, and shipping records.
     """
-    raise NotImplementedError(
-        "TODO: Call lot_repo.get_lot_by_code(db, lot_code). "
-        "If None, raise HTTPException(status_code=404, detail='Lot not found'). "
-        "Flatten lot + data_completeness into LotDetail dict. Return it."
+    lot = lot_repo.get_lot_by_code(db, lot_code)
+    if lot is None:
+        # Return 404 rather than 500 so the frontend can show a "Not found" page (AC2).
+        raise HTTPException(status_code=404, detail="Lot not found")
+
+    dc = lot.data_completeness  # DataCompleteness ORM object, or None
+    return LotDetail(
+        lot_id=lot.lot_id,
+        lot_code=lot.lot_code,
+        start_date=lot.start_date,
+        end_date=lot.end_date,
+        # Pass ORM list objects directly — Pydantic's from_attributes=True serialises them.
+        production_records=lot.production_records,
+        inspection_records=lot.inspection_records,
+        shipping_records=lot.shipping_records,
+        has_production_data=dc.has_production_data if dc else False,
+        has_inspection_data=dc.has_inspection_data if dc else False,
+        has_shipping_data=dc.has_shipping_data if dc else False,
+        overall_completeness=Decimal(str(dc.overall_completeness)) if dc else Decimal(0),
+        created_at=lot.created_at,
+        updated_at=lot.updated_at,
     )

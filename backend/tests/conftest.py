@@ -29,6 +29,7 @@
 #   AC9                 → LOT-A used for full detail drill-down
 
 import os
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
@@ -49,6 +50,11 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.inspection import InspectionRecord  # noqa: E402
+from app.models.lot import Lot  # noqa: E402
+from app.models.production import ProductionRecord  # noqa: E402
+from app.models.shipping import ShippingRecord  # noqa: E402
+from app.repositories.lot_repo import refresh_data_completeness  # noqa: E402
 
 # ── Engine and session factory ────────────────────────────────────────────────
 
@@ -169,9 +175,124 @@ def seeded_db(db: Session) -> Session:
     AC6:  LOT-C inspection is flagged + shipping is On Hold
     AC10: Completeness scores: 100 (LOT-A), 67 (LOT-B), 100 (LOT-C), 0 (LOT-D)
     """
-    raise NotImplementedError(
-        "TODO: Create Lot, ProductionRecord, InspectionRecord, ShippingRecord objects "
-        "for LOT-A, LOT-B, LOT-C, LOT-D. db.add_all(...). db.commit(). "
-        "Call refresh_data_completeness(db, lot_id) for each lot. "
-        "return db."
+    # ── Create the four Lot headers ───────────────────────────────────────────
+    lot_a = Lot(lot_code="LOT-A", start_date=date(2026, 1, 10), end_date=date(2026, 1, 15))
+    lot_b = Lot(lot_code="LOT-B", start_date=date(2026, 1, 12), end_date=date(2026, 1, 18))
+    lot_c = Lot(lot_code="LOT-C", start_date=date(2026, 1, 20), end_date=date(2026, 1, 25))
+    lot_d = Lot(lot_code="LOT-D", start_date=date(2026, 2, 1), end_date=None)
+    db.add_all([lot_a, lot_b, lot_c, lot_d])
+    db.flush()  # Flush assigns lot_id values without committing the transaction yet.
+
+    # ── LOT-A: complete (prod + insp + ship) → completeness = 100 ─────────────
+    db.add(
+        ProductionRecord(
+            lot_id=lot_a.lot_id,
+            production_date=date(2026, 1, 10),
+            production_line="Line 2",
+            quantity_produced=500,
+            shift="Day",
+            part_number="SW-8091-A",
+            units_planned=500,
+            downtime_min=0,
+            line_issue=False,
+        )
     )
+    db.add(
+        InspectionRecord(
+            lot_id=lot_a.lot_id,
+            inspection_date=date(2026, 1, 11),
+            inspector_id="EMP-001",
+            inspection_result="Pass",
+            issue_flag=False,
+            defect_count=0,
+            sample_size=50,
+        )
+    )
+    db.add(
+        ShippingRecord(
+            lot_id=lot_a.lot_id,
+            ship_date=date(2026, 1, 15),
+            carrier="FedEx Freight",
+            destination="Detroit Assembly Plant",
+            quantity_shipped=500,
+            shipment_status="Delivered",
+        )
+    )
+
+    # ── LOT-B: missing inspection → completeness = 67 ─────────────────────────
+    db.add(
+        ProductionRecord(
+            lot_id=lot_b.lot_id,
+            production_date=date(2026, 1, 12),
+            production_line="Line 1",
+            quantity_produced=300,
+            shift="Night",
+            part_number="SW-7020-B",
+            units_planned=320,
+            downtime_min=15,
+            line_issue=False,
+        )
+    )
+    # No InspectionRecord for LOT-B → has_inspection_data = False
+    db.add(
+        ShippingRecord(
+            lot_id=lot_b.lot_id,
+            ship_date=date(2026, 1, 18),
+            carrier="UPS LTL",
+            destination="Chicago Distribution Center",
+            quantity_shipped=300,
+            shipment_status="In Transit",
+        )
+    )
+
+    # ── LOT-C: flagged inspection + On Hold shipping → completeness = 100 ─────
+    # AC5: line_issue=True on production; AC6: issue_flag=True + On Hold shipment.
+    db.add(
+        ProductionRecord(
+            lot_id=lot_c.lot_id,
+            production_date=date(2026, 1, 20),
+            production_line="Line 3",
+            quantity_produced=400,
+            shift="Swing",
+            part_number="SW-9100-C",
+            units_planned=400,
+            downtime_min=30,
+            line_issue=True,
+            primary_issue="Tool wear",
+        )
+    )
+    db.add(
+        InspectionRecord(
+            lot_id=lot_c.lot_id,
+            inspection_date=date(2026, 1, 21),
+            inspector_id="EMP-042",
+            inspection_result="Fail",
+            issue_flag=True,
+            issue_category="Dimensional",
+            defect_count=12,
+            sample_size=50,
+        )
+    )
+    db.add(
+        ShippingRecord(
+            lot_id=lot_c.lot_id,
+            ship_date=date(2026, 1, 25),
+            carrier="FedEx Freight",
+            destination="Cleveland Warehouse",
+            quantity_shipped=400,
+            shipment_status="On Hold",
+        )
+    )
+
+    # ── LOT-D: no child records at all → completeness = 0 ────────────────────
+    # No ProductionRecord, InspectionRecord, or ShippingRecord added.
+
+    db.commit()
+
+    # ── Replicate PostgreSQL trigger logic for each lot ───────────────────────
+    # In production, triggers auto-update data_completeness on INSERT/DELETE.
+    # In SQLite (tests), triggers don't run, so we call refresh manually.
+    for lot in (lot_a, lot_b, lot_c, lot_d):
+        refresh_data_completeness(db, lot.lot_id)
+
+    return db

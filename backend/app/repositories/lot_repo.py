@@ -16,10 +16,15 @@
 #     when accessing child relationships.
 
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.data_completeness import DataCompleteness
+from app.models.inspection import InspectionRecord
 from app.models.lot import Lot
+from app.models.production import ProductionRecord
+from app.models.shipping import ShippingRecord
 
 
 def get_lots(
@@ -81,10 +86,18 @@ def get_lot_by_code(db: Session, lot_code: str) -> Lot | None:
     Time complexity:  O(P + I + S) where P, I, S are counts of child records.
     Space complexity: O(P + I + S) — all child records held in memory.
     """
-    raise NotImplementedError(
-        "TODO: Filter lots by lot_code, use joinedload for all four relationships "
-        "(production_records, inspection_records, shipping_records, data_completeness). "
-        "Return first result or None."
+    # joinedload fetches all four relationships in the same query using LEFT OUTER JOINs,
+    # avoiding N+1 queries when the router accesses lot.production_records etc.
+    return (
+        db.query(Lot)
+        .options(
+            joinedload(Lot.production_records),   # AC9: production detail
+            joinedload(Lot.inspection_records),   # AC9: inspection detail
+            joinedload(Lot.shipping_records),     # AC9: shipping detail
+            joinedload(Lot.data_completeness),    # AC4/AC10: completeness score
+        )
+        .filter(Lot.lot_code == lot_code)
+        .first()  # Returns None if the lot_code doesn't exist → router raises 404
     )
 
 
@@ -113,8 +126,33 @@ def refresh_data_completeness(db: Session, lot_id: int) -> None:
     Time complexity:  O(1) — three EXISTS subqueries, one upsert.
     Space complexity: O(1) — only one DataCompleteness row touched.
     """
-    raise NotImplementedError(
-        "TODO: Check existence of production/inspection/shipping records for lot_id. "
-        "Compute score = round((prod+insp+ship)/3.0*100). "
-        "Merge (upsert) a DataCompleteness row. db.commit()."
-    )
+    # Three EXISTS-style checks — one per data domain.
+    # .first() returns the object if ≥1 row exists, or None if no rows → bool.
+    has_prod = db.query(ProductionRecord).filter(ProductionRecord.lot_id == lot_id).first() is not None
+    has_insp = db.query(InspectionRecord).filter(InspectionRecord.lot_id == lot_id).first() is not None
+    has_ship = db.query(ShippingRecord).filter(ShippingRecord.lot_id == lot_id).first() is not None
+
+    # Mirror the PostgreSQL trigger formula: ROUND((prod+insp+ship) / 3.0 * 100)
+    # Possible results: 0 (none), 33 (one), 67 (two), 100 (all three).
+    score = round((int(has_prod) + int(has_insp) + int(has_ship)) / 3.0 * 100)
+
+    # Upsert the DataCompleteness row for this lot.
+    dc = db.query(DataCompleteness).filter(DataCompleteness.lot_id == lot_id).first()
+    if dc is None:
+        # First time seeding this lot — create a new row.
+        dc = DataCompleteness(
+            lot_id=lot_id,
+            has_production_data=has_prod,
+            has_inspection_data=has_insp,
+            has_shipping_data=has_ship,
+            overall_completeness=Decimal(str(score)),
+        )
+        db.add(dc)
+    else:
+        # Update the existing row in-place.
+        dc.has_production_data = has_prod
+        dc.has_inspection_data = has_insp
+        dc.has_shipping_data = has_ship
+        dc.overall_completeness = Decimal(str(score))
+
+    db.commit()  # Flush to the in-memory SQLite DB; connection is not closed here.

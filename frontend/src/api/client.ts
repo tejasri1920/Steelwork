@@ -72,10 +72,10 @@ const apiClient = axios.create({
  * AC4/AC10: overall_completeness included in each row.
  */
 export async function fetchLots(params?: LotListParams): Promise<LotSummary[]> {
-  throw new Error(
-    'TODO: apiClient.get<LotSummary[]>("/api/v1/lots/", { params }). ' +
-    'Return response.data.'
-  );
+  // Axios serialises the params object as query string: ?start_date=...&end_date=...
+  // Undefined values are omitted automatically, so partial filters work correctly.
+  const response = await apiClient.get<LotSummary[]>('/api/v1/lots/', { params });
+  return response.data;
 }
 
 /**
@@ -91,10 +91,8 @@ export async function fetchLots(params?: LotListParams): Promise<LotSummary[]> {
  * AC9: Full drill-down including production, inspection, shipping records.
  */
 export async function fetchLotByCode(lotCode: string): Promise<LotDetail> {
-  throw new Error(
-    'TODO: apiClient.get<LotDetail>(`/api/v1/lots/${lotCode}`). ' +
-    'Return response.data.'
-  );
+  const response = await apiClient.get<LotDetail>(`/api/v1/lots/${lotCode}`);
+  return response.data;
 }
 
 
@@ -112,10 +110,8 @@ export async function fetchLotByCode(lotCode: string): Promise<LotDetail> {
  * AC10: overall_completeness per lot.
  */
 export async function fetchLotSummary(): Promise<LotSummaryRow[]> {
-  throw new Error(
-    'TODO: apiClient.get<LotSummaryRow[]>("/api/v1/reports/lot-summary"). ' +
-    'Return response.data.'
-  );
+  const response = await apiClient.get<LotSummaryRow[]>('/api/v1/reports/lot-summary');
+  return response.data;
 }
 
 /**
@@ -128,10 +124,8 @@ export async function fetchLotSummary(): Promise<LotSummaryRow[]> {
  * AC6: Show shipment status for flagged lots.
  */
 export async function fetchInspectionIssues(): Promise<InspectionIssueRow[]> {
-  throw new Error(
-    'TODO: apiClient.get<InspectionIssueRow[]>("/api/v1/reports/inspection-issues"). ' +
-    'Return response.data.'
-  );
+  const response = await apiClient.get<InspectionIssueRow[]>('/api/v1/reports/inspection-issues');
+  return response.data;
 }
 
 /**
@@ -144,10 +138,8 @@ export async function fetchInspectionIssues(): Promise<InspectionIssueRow[]> {
  * AC10: Completeness score per lot.
  */
 export async function fetchIncompleteLots(): Promise<IncompleteLotRow[]> {
-  throw new Error(
-    'TODO: apiClient.get<IncompleteLotRow[]>("/api/v1/reports/incomplete-lots"). ' +
-    'Return response.data.'
-  );
+  const response = await apiClient.get<IncompleteLotRow[]>('/api/v1/reports/incomplete-lots');
+  return response.data;
 }
 
 /**
@@ -159,8 +151,6 @@ export async function fetchIncompleteLots(): Promise<IncompleteLotRow[]> {
  * AC5: Identify which lines have the highest issue rates.
  */
 export async function fetchLineIssues(): Promise<LineIssueRow[]> {
-  throw new Error(
-    'TODO: apiClient.get<LineIssueRow[]>("/api/v1/reports/line-issues"). ' +
-    'Return response.data.'
-  );
+  const response = await apiClient.get<LineIssueRow[]>('/api/v1/reports/line-issues');
+  return response.data;
 }
