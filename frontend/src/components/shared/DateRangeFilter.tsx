@@ -22,8 +22,6 @@ interface DateRangeFilterProps {
 
   /**
    * Called when either date input changes.
-   * The parent updates its state and passes the new values back via props.
-   *
    * @param startDate - New start date value (ISO-8601 string or "").
    * @param endDate   - New end date value (ISO-8601 string or "").
    */
@@ -33,19 +31,45 @@ interface DateRangeFilterProps {
 /**
  * DateRangeFilter — two date picker inputs for filtering lots by date range.
  *
- * Suggested structure:
- *   <div className="flex gap-4 items-center">
- *     <label>From: <input type="date" value={startDate} onChange={...} /></label>
- *     <label>To:   <input type="date" value={endDate}   onChange={...} /></label>
- *     <button onClick={() => onChange('', '')}>Clear</button>
- *   </div>
+ * Each input fires onChange immediately on change so the parent can re-fetch.
+ * The Clear button resets both values to empty strings.
  *
  * @param props - startDate, endDate, onChange callback
  *
  * AC3: Used to filter the lots list by lots.start_date range.
  */
-export default function DateRangeFilter(_props: DateRangeFilterProps) {
-  // TODO: Render two date inputs and a Clear button.
-  // Call props.onChange when either input value changes.
-  throw new Error('TODO: Implement DateRangeFilter UI');
+export default function DateRangeFilter({ startDate, endDate, onChange }: DateRangeFilterProps) {
+  return (
+    <div className="flex flex-wrap gap-4 items-center">
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        From
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => onChange(e.target.value, endDate)}
+          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        To
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => onChange(startDate, e.target.value)}
+          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </label>
+
+      {/* Clear button — only shown when a filter is active to reduce visual noise. */}
+      {(startDate || endDate) && (
+        <button
+          onClick={() => onChange('', '')}
+          className="text-sm text-gray-500 hover:text-gray-800 underline"
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  );
 }

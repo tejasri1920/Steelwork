@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.repositories import report_repo
 from app.schemas.reports import (
     IncompleteLotRow,
     InspectionIssueRow,
@@ -57,7 +58,10 @@ def lot_summary(db: Session = Depends(get_db)) -> list[LotSummaryRow]:
     AC8:  latest_status column shows current shipment state.
     AC10: overall_completeness included in each row.
     """
-    raise NotImplementedError("TODO: Call report_repo.get_lot_summary(db). Return the list.")
+    # model_validate converts each plain dict from the repo into a typed Pydantic
+    # object, satisfying mypy's return type check and giving FastAPI a fully
+    # validated object to serialise.
+    return [LotSummaryRow.model_validate(row) for row in report_repo.get_lot_summary(db)]
 
 
 @router.get(
@@ -81,7 +85,7 @@ def inspection_issues(db: Session = Depends(get_db)) -> list[InspectionIssueRow]
     AC5: Identify lots that had inspection problems.
     AC6: Track those lots to see if they were held, rerouted, or shipped.
     """
-    raise NotImplementedError("TODO: Call report_repo.get_inspection_issues(db). Return the list.")
+    return [InspectionIssueRow.model_validate(row) for row in report_repo.get_inspection_issues(db)]
 
 
 @router.get(
@@ -104,7 +108,7 @@ def incomplete_lots(db: Session = Depends(get_db)) -> list[IncompleteLotRow]:
     AC4:  Analyst can see which lots are missing data before a meeting.
     AC10: overall_completeness score visible per lot.
     """
-    raise NotImplementedError("TODO: Call report_repo.get_incomplete_lots(db). Return the list.")
+    return [IncompleteLotRow.model_validate(row) for row in report_repo.get_incomplete_lots(db)]
 
 
 @router.get(
@@ -127,4 +131,4 @@ def line_issues(db: Session = Depends(get_db)) -> list[LineIssueRow]:
 
     AC5: Identify which production lines have the highest issue rates.
     """
-    raise NotImplementedError("TODO: Call report_repo.get_line_issues(db). Return the list.")
+    return [LineIssueRow.model_validate(row) for row in report_repo.get_line_issues(db)]

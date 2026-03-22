@@ -1,6 +1,6 @@
 # tests/test_lots.py
 #
-# Unit test stubs for the lots API endpoints.
+# Unit tests for the lots API endpoints.
 #
 # Endpoints under test:
 #   GET /api/v1/lots/             → list_lots()
@@ -15,7 +15,6 @@
 #
 # Test naming convention:
 #   test_<endpoint>_<scenario>
-#   e.g. test_list_lots_no_filter, test_get_lot_not_found
 #
 # All tests use the `client` fixture (conftest.py) which provides a TestClient
 # backed by an in-memory SQLite database with no data unless `seeded_db` is used.
@@ -45,11 +44,9 @@ class TestListLots:
 
         AC2: All lots are visible in the list.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/'). "
-            "assert response.status_code == 200. "
-            "assert len(response.json()) == 4."
-        )
+        response = client.get("/api/v1/lots/")
+        assert response.status_code == 200
+        assert len(response.json()) == 4
 
     def test_list_lots_date_filter_start_date(self, client: TestClient, seeded_db) -> None:
         """
@@ -58,12 +55,11 @@ class TestListLots:
 
         AC3: Date filtering on lots.start_date lower bound.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/?start_date=2026-02-01'). "
-            "assert response.status_code == 200. "
-            "assert len(response.json()) == 1. "
-            "assert response.json()[0]['lot_code'] == 'LOT-D'."
-        )
+        response = client.get("/api/v1/lots/?start_date=2026-02-01")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["lot_code"] == "LOT-D"
 
     def test_list_lots_date_filter_range(self, client: TestClient, seeded_db) -> None:
         """
@@ -72,12 +68,12 @@ class TestListLots:
 
         AC3: Date filtering with both bounds.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/?start_date=2026-01-01&end_date=2026-01-31'). "
-            "assert response.status_code == 200. "
-            "assert len(response.json()) == 3. "
-            "assert all lot_codes are LOT-A, LOT-B, LOT-C."
-        )
+        response = client.get("/api/v1/lots/?start_date=2026-01-01&end_date=2026-01-31")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        lot_codes = {row["lot_code"] for row in data}
+        assert lot_codes == {"LOT-A", "LOT-B", "LOT-C"}
 
     def test_list_lots_includes_completeness_score(self, client: TestClient, seeded_db) -> None:
         """
@@ -86,14 +82,17 @@ class TestListLots:
 
         AC4/AC10: Completeness data visible in the list view.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/'). "
-            "assert response.status_code == 200. "
-            "rows = response.json(). "
-            "assert 'overall_completeness' in rows[0]. "
-            "assert 'has_production_data' in rows[0]. "
-            "Find LOT-D row, assert overall_completeness == 0."
-        )
+        response = client.get("/api/v1/lots/")
+        assert response.status_code == 200
+        rows = response.json()
+        # Verify the first row has all completeness fields
+        assert "overall_completeness" in rows[0]
+        assert "has_production_data" in rows[0]
+        assert "has_inspection_data" in rows[0]
+        assert "has_shipping_data" in rows[0]
+        # LOT-D has no child records → completeness = 0
+        lot_d = next(r for r in rows if r["lot_code"] == "LOT-D")
+        assert float(lot_d["overall_completeness"]) == 0
 
     def test_list_lots_lot_b_has_correct_completeness(self, client: TestClient, seeded_db) -> None:
         """
@@ -101,14 +100,13 @@ class TestListLots:
 
         AC10: Partial completeness score is correctly calculated.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/'). "
-            "Find LOT-B in response. "
-            "assert overall_completeness == 67. "
-            "assert has_production_data == True. "
-            "assert has_inspection_data == False. "
-            "assert has_shipping_data == True."
-        )
+        response = client.get("/api/v1/lots/")
+        assert response.status_code == 200
+        lot_b = next(r for r in response.json() if r["lot_code"] == "LOT-B")
+        assert float(lot_b["overall_completeness"]) == 67
+        assert lot_b["has_production_data"] is True
+        assert lot_b["has_inspection_data"] is False
+        assert lot_b["has_shipping_data"] is True
 
 
 # ── GET /api/v1/lots/{lot_code} ───────────────────────────────────────────────
@@ -123,10 +121,8 @@ class TestGetLot:
 
         AC2: Graceful not-found handling.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/LOT-DOES-NOT-EXIST'). "
-            "assert response.status_code == 404."
-        )
+        response = client.get("/api/v1/lots/LOT-DOES-NOT-EXIST")
+        assert response.status_code == 404
 
     def test_get_lot_returns_lot_a_with_all_child_records(
         self, client: TestClient, seeded_db
@@ -136,15 +132,13 @@ class TestGetLot:
 
         AC9: Full detail view includes production, inspection, and shipping records.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/LOT-A'). "
-            "assert response.status_code == 200. "
-            "data = response.json(). "
-            "assert data['lot_code'] == 'LOT-A'. "
-            "assert len(data['production_records']) == 1. "
-            "assert len(data['inspection_records']) == 1. "
-            "assert len(data['shipping_records']) == 1."
-        )
+        response = client.get("/api/v1/lots/LOT-A")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["lot_code"] == "LOT-A"
+        assert len(data["production_records"]) == 1
+        assert len(data["inspection_records"]) == 1
+        assert len(data["shipping_records"]) == 1
 
     def test_get_lot_lot_c_has_flagged_inspection(self, client: TestClient, seeded_db) -> None:
         """
@@ -153,16 +147,14 @@ class TestGetLot:
         AC5: Inspection issue visible in lot detail.
         AC6: LOT-C has On Hold shipping — linked to the flagged inspection.
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/LOT-C'). "
-            "assert response.status_code == 200. "
-            "data = response.json(). "
-            "insp = data['inspection_records'][0]. "
-            "assert insp['issue_flag'] == True. "
-            "assert insp['issue_category'] == 'Dimensional'. "
-            "ship = data['shipping_records'][0]. "
-            "assert ship['shipment_status'] == 'On Hold'."
-        )
+        response = client.get("/api/v1/lots/LOT-C")
+        assert response.status_code == 200
+        data = response.json()
+        insp = data["inspection_records"][0]
+        assert insp["issue_flag"] is True
+        assert insp["issue_category"] == "Dimensional"
+        ship = data["shipping_records"][0]
+        assert ship["shipment_status"] == "On Hold"
 
     def test_get_lot_d_has_empty_child_record_lists(self, client: TestClient, seeded_db) -> None:
         """
@@ -171,12 +163,10 @@ class TestGetLot:
 
         AC4: Missing data is surfaced (empty lists, not nulls).
         """
-        raise NotImplementedError(
-            "TODO: client.get('/api/v1/lots/LOT-D'). "
-            "assert response.status_code == 200. "
-            "data = response.json(). "
-            "assert data['production_records'] == []. "
-            "assert data['inspection_records'] == []. "
-            "assert data['shipping_records'] == []. "
-            "assert data['overall_completeness'] == 0."
-        )
+        response = client.get("/api/v1/lots/LOT-D")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["production_records"] == []
+        assert data["inspection_records"] == []
+        assert data["shipping_records"] == []
+        assert float(data["overall_completeness"]) == 0

@@ -1,0 +1,98 @@
+# .pre-commit-config.yaml
+#
+# Pre-commit hook configuration.
+# Runs ruff format, ruff check, mypy, and pytest before every commit.
+#
+# One-time setup (per developer, per clone):
+#   pip install pre-commit
+#   pre-commit install          ← registers the hooks in .git/hooks/pre-commit
+#
+# Run manually against all files:
+#   pre-commit run --all-files
+#
+# Skip hooks for an emergency commit (use sparingly):
+#   git commit --no-verify -m "..."
+#
+# All hooks delegate to backend/scripts/run_in_venv.sh, which:
+#   - In CI (Linux): finds the tool in PATH (set by the workflow).
+#   - Locally on Windows: discovers the Poetry virtualenv via
+#     `poetry env list --full-path` and runs the tool from Scripts/.
+# This avoids hardcoding paths and works across environments.
+
+repos:
+  - repo: local
+    hooks:
+
+      # ── ruff format ──────────────────────────────────────────────────────────
+      # Formats Python source to a consistent style (replaces black).
+      # Runs from backend/ (handled by the wrapper), so ruff reads
+      # its config from backend/pyproject.toml.
+      - id: ruff-format
+        name: ruff format
+        description: "Format Python files with ruff (replaces black)"
+        entry: bash backend/scripts/run_in_venv.sh ruff format .
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      # ── ruff check ───────────────────────────────────────────────────────────
+      # Lints and auto-fixes Python source (replaces flake8 + isort + pyupgrade).
+      # --fix auto-corrects safe violations; remaining unsafe ones fail the commit.
+      - id: ruff-check
+        name: ruff check
+        description: "Lint Python files with ruff (replaces flake8 + isort)"
+        entry: bash backend/scripts/run_in_venv.sh ruff check --fix .
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      # ── mypy ─────────────────────────────────────────────────────────────────
+      # Static type checker — catches type errors without running the code.
+      # always_run: true ensures mypy runs even when only non-Python files change
+      # (e.g. pyproject.toml plugin config can affect type results).
+      - id: mypy
+        name: mypy
+        description: "Static type checking with mypy"
+        entry: bash backend/scripts/run_in_venv.sh mypy app/
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # ── pytest ───────────────────────────────────────────────────────────────
+      # Runs the full unit-test suite (SQLite in-memory — no live DB required).
+      # conftest.py sets TESTING=true and DATABASE_URL automatically.
+      # always_run: true ensures tests run on every commit, not just Python changes.
+      - id: pytest
+        name: pytest
+        description: "Run unit tests (SQLite in-memory, no DB required)"
+        entry: bash backend/scripts/run_in_venv.sh pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # ── license-check-gpl ─────────────────────────────────────────────────────
+      # Blocks commits that introduce GPL / AGPL / LGPL runtime dependencies.
+      #
+      # Why: Copyleft licenses impose "share-alike" obligations that can require
+      # releasing the entire application source under the same license — a legal
+      # risk for proprietary software.
+      #
+      # How: Runs backend/scripts/check_gpl_licenses.py, which calls pip-licenses
+      # (installed in the Poetry dev group) to enumerate every installed package's
+      # license metadata and fails if any prefix matches GPL, AGPL, or LGPL.
+      #
+      # pip-licenses is a dev dependency declared in backend/pyproject.toml and
+      # installed via `poetry install --with dev`.  run_in_venv.sh resolves it
+      # from the Poetry virtualenv on Windows and from PATH in CI.
+      #
+      # pass_filenames: false — the check scans ALL installed packages, not just
+      # files changed in this commit.
+      # always_run: true — must run on every commit because a new dependency could
+      # have been added to pyproject.toml without touching any Python source file.
+      - id: license-check-gpl
+        name: block copyleft licenses (GPL / AGPL / LGPL)
+        description: "Fail if any installed package carries a GPL, AGPL, or LGPL license"
+        entry: bash backend/scripts/run_in_venv.sh python scripts/check_gpl_licenses.py
+        language: system
+        pass_filenames: false
+        always_run: true
