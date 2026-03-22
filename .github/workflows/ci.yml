@@ -27,6 +27,10 @@ jobs:
   pre-commit:
     name: Pre-commit checks (ruff · mypy · pytest)
     runs-on: ubuntu-latest
+    env:
+      # Opt in to Node.js 24 for actions/checkout and actions/setup-python
+      # ahead of the June 2026 forced migration.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       # ── 1. Checkout ──────────────────────────────────────────────────────────
@@ -45,6 +49,15 @@ jobs:
       # (ruff, mypy, pytest, pytest-cov, etc.).
       - name: Install Poetry
         run: pip install poetry
+
+      # Regenerate the lock file for the CI Python version.
+      # The committed poetry.lock was created on Python 3.13 (local dev). Poetry
+      # rejects a lock file whose platform markers don't match the running Python, so
+      # we re-lock before installing. --no-update keeps existing package versions;
+      # it only adjusts platform markers and adds/removes Python-version-specific deps.
+      - name: Regenerate poetry.lock for Python 3.11
+        working-directory: backend
+        run: poetry lock --no-update
 
       - name: Install backend dependencies
         working-directory: backend
