@@ -18,6 +18,9 @@
 
 name: CI
 
+permissions:
+  contents: read
+
 on:
   pull_request:           # Runs on PR creation and every subsequent push to the PR branch
     branches:
