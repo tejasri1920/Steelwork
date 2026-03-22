@@ -56,11 +56,10 @@ jobs:
       # Regenerate the lock file for the CI Python version.
       # The committed poetry.lock was created on Python 3.13 (local dev). Poetry
       # rejects a lock file whose platform markers don't match the running Python, so
-      # we re-lock before installing. --no-update keeps existing package versions;
-      # it only adjusts platform markers and adds/removes Python-version-specific deps.
+      # we re-lock before installing.
       - name: Regenerate poetry.lock for Python 3.11
         working-directory: backend
-        run: poetry lock --no-update
+        run: poetry lock
 
       - name: Install backend dependencies
         working-directory: backend
