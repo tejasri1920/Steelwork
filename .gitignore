@@ -11,6 +11,7 @@
 # .env.example (committed) is the safe template with placeholder values.
 .env
 *.env
+.env.test
 
 # ── Python ───────────────────────────────────────────────────────────────────
 # Compiled bytecode — regenerated automatically by Python
