@@ -16,7 +16,12 @@
 #   AC7  — meeting-ready summary (lot-summary endpoint)
 #   AC8  — shipment status overview (lot-summary endpoint)
 #   AC10 — completeness scores in lot-summary and incomplete-lots
+#
+# Logging:
+#   INFO  — each request with its query parameters
+#   DEBUG — row counts returned to the caller
 
+import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
@@ -30,6 +35,9 @@ from app.schemas.reports import (
     LineIssueRow,
     LotSummaryRow,
 )
+
+# Module-level logger.  Name follows __name__ convention: "app.routers.reports".
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/reports",
@@ -76,13 +84,22 @@ def lot_summary(
     AC8:  latest_status column shows current shipment state.
     AC10: overall_completeness included in each row.
     """
+    logger.info(
+        "GET /reports/lot-summary | start_date=%s end_date=%s",
+        start_date,
+        end_date,
+    )
+
     # model_validate converts each plain dict from the repo into a typed Pydantic
     # object, satisfying mypy's return type check and giving FastAPI a fully
     # validated object to serialise.
-    return [
+    rows = [
         LotSummaryRow.model_validate(row)
         for row in report_repo.get_lot_summary(db, start_date=start_date, end_date=end_date)
     ]
+
+    logger.debug("GET /reports/lot-summary returned %d row(s)", len(rows))
+    return rows
 
 
 @router.get(
@@ -106,7 +123,12 @@ def inspection_issues(db: Session = Depends(get_db)) -> list[InspectionIssueRow]
     AC5: Identify lots that had inspection problems.
     AC6: Track those lots to see if they were held, rerouted, or shipped.
     """
-    return [InspectionIssueRow.model_validate(row) for row in report_repo.get_inspection_issues(db)]
+    logger.info("GET /reports/inspection-issues")
+
+    rows = [InspectionIssueRow.model_validate(row) for row in report_repo.get_inspection_issues(db)]
+
+    logger.debug("GET /reports/inspection-issues returned %d row(s)", len(rows))
+    return rows
 
 
 @router.get(
@@ -129,7 +151,12 @@ def incomplete_lots(db: Session = Depends(get_db)) -> list[IncompleteLotRow]:
     AC4:  Analyst can see which lots are missing data before a meeting.
     AC10: overall_completeness score visible per lot.
     """
-    return [IncompleteLotRow.model_validate(row) for row in report_repo.get_incomplete_lots(db)]
+    logger.info("GET /reports/incomplete-lots")
+
+    rows = [IncompleteLotRow.model_validate(row) for row in report_repo.get_incomplete_lots(db)]
+
+    logger.debug("GET /reports/incomplete-lots returned %d row(s)", len(rows))
+    return rows
 
 
 @router.get(
@@ -152,4 +179,9 @@ def line_issues(db: Session = Depends(get_db)) -> list[LineIssueRow]:
 
     AC5: Identify which production lines have the highest issue rates.
     """
-    return [LineIssueRow.model_validate(row) for row in report_repo.get_line_issues(db)]
+    logger.info("GET /reports/line-issues")
+
+    rows = [LineIssueRow.model_validate(row) for row in report_repo.get_line_issues(db)]
+
+    logger.debug("GET /reports/line-issues returned %d row(s)", len(rows))
+    return rows

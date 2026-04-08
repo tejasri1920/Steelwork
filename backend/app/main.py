@@ -7,6 +7,7 @@
 #   2. Configures CORS (Cross-Origin Resource Sharing) so the React frontend can call the API
 #   3. Registers all APIRouters under the /api/v1 prefix
 #   4. Provides a health-check endpoint at GET /health
+#   5. Initialises application logging on startup via setup_logging()
 #
 # The app object is what uvicorn serves:
 #   uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -15,11 +16,18 @@
 #   python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 # Using `python -m uvicorn` (module mode) avoids shebang path issues in containers.
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.logging_config import setup_logging
 from app.routers import lots, reports
+
+# Module-level logger — records startup / shutdown milestones.
+# Name follows __name__ convention: "app.main" in the log output.
+logger = logging.getLogger(__name__)
 
 # ── App instance ──────────────────────────────────────────────────────────────
 
@@ -62,6 +70,45 @@ app.include_router(lots.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 
 
+# ── Startup / Shutdown events ─────────────────────────────────────────────────
+
+
+@app.on_event("startup")  # type: ignore[attr-defined]
+async def startup_event() -> None:
+    """
+    Initialise logging and record the application startup milestone.
+
+    Logging setup is skipped when settings.testing is True so that
+    pytest's own log-capture machinery (caplog) is not overridden and no
+    app.log file is created in the test working directory.
+
+    Time complexity:  O(1)
+    Space complexity: O(1)
+    """
+    if not settings.testing:
+        # Set up console + rotating-file handlers (see logging_config.py).
+        # In tests TESTING=true so this branch is skipped; caplog captures logs
+        # directly from the loggers without needing file or stream handlers.
+        setup_logging()
+
+    logger.info(
+        "Application startup complete | version=%s | testing=%s",
+        app.version,
+        settings.testing,
+    )
+
+
+@app.on_event("shutdown")  # type: ignore[attr-defined]
+async def shutdown_event() -> None:
+    """
+    Record the application shutdown milestone.
+
+    Time complexity:  O(1)
+    Space complexity: O(1)
+    """
+    logger.info("Application shutdown")
+
+
 # ── Health check ──────────────────────────────────────────────────────────────
 
 
@@ -81,4 +128,5 @@ def health_check() -> dict[str, str]:
     This does NOT check the database connection — it only verifies the server is up.
     A separate /health/db endpoint could be added later for DB liveness checks.
     """
+    logger.debug("Health check requested")
     return {"status": "ok"}

@@ -29,6 +29,12 @@ dist/
 .coverage
 htmlcov/
 
+# ── Application log files ─────────────────────────────────────────────────────
+# app.log and rotated backups (app.log.1 / .2 / .3) — generated at runtime,
+# never committed.  See app/logging_config.py for rotation settings.
+app.log
+app.log.*
+
 # ── Node / Frontend build ────────────────────────────────────────────────────
 # npm dependencies — reinstalled with `npm install`
 node_modules/
