@@ -17,6 +17,7 @@
 # aggregate across multiple tables — there is no single ORM class to return.
 # The router validates the dicts against Pydantic report schemas.
 
+import logging
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
@@ -28,6 +29,9 @@ from app.models.inspection import InspectionRecord
 from app.models.lot import Lot
 from app.models.production import ProductionRecord
 from app.models.shipping import ShippingRecord
+
+# Module-level logger.  Name follows __name__ convention: "app.repositories.report_repo".
+logger = logging.getLogger(__name__)
 
 
 def get_lot_summary(
@@ -87,6 +91,12 @@ def get_lot_summary(
     if end_date is not None:
         query = query.filter(Lot.start_date <= end_date)
     lots = query.all()
+    logger.debug(
+        "get_lot_summary(start_date=%s, end_date=%s) querying %d lot(s)",
+        start_date,
+        end_date,
+        len(lots),
+    )
 
     result = []
     for lot in lots:
@@ -133,6 +143,7 @@ def get_lot_summary(
             }
         )
 
+    logger.debug("get_lot_summary → %d row(s)", len(result))
     return result
 
 
@@ -193,6 +204,7 @@ def get_inspection_issues(db: Session) -> list[dict]:
             }
         )
 
+    logger.debug("get_inspection_issues → %d row(s)", len(result))
     return result
 
 
@@ -249,6 +261,7 @@ def get_incomplete_lots(db: Session) -> list[dict]:
             }
         )
 
+    logger.debug("get_incomplete_lots → %d row(s)", len(result))
     return result
 
 
@@ -324,4 +337,5 @@ def get_line_issues(db: Session) -> list[dict]:
 
     # ORDER BY total_issues DESC — mirrors the PostgreSQL view's ORDER BY clause.
     result.sort(key=lambda x: x["total_issues"], reverse=True)
+    logger.debug("get_line_issues → %d production line(s)", len(result))
     return result
