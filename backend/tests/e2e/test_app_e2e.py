@@ -41,9 +41,11 @@ from playwright.sync_api import Page, expect  # noqa: F401 (expect used via asse
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-# Default timeout (ms) for Playwright assertions.  Vite dev-server + React Query
-# fetches can take a moment on the first load.
-_TIMEOUT = 10_000
+# Default timeout (ms) for Playwright assertions.
+# Set to 30 s to accommodate:
+#   - Render free-tier PostgreSQL cold start (first query can take 15–30 s)
+#   - React Query re-fetch after the DB connection pool warms up
+_TIMEOUT = 30_000
 
 
 class TestDashboard:

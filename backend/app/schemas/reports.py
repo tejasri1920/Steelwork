@@ -25,7 +25,7 @@ class LotSummaryRow(BaseModel):
     This is the primary view used in meeting discussions (AC7).
 
     Columns sourced from:
-      - lots (lot_id, start_date, end_date)
+      - lots (lot_id, lot_code, start_date, end_date)
       - production_records aggregated (total_produced, lines_used)
       - inspection_records aggregated (any_issues, issue_count)
       - shipping_records aggregated (latest_status)
@@ -37,6 +37,7 @@ class LotSummaryRow(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     lot_id: int
+    lot_code: str  # Human-readable identifier used for display and navigation
     start_date: date
     end_date: date | None = None
 
@@ -68,6 +69,7 @@ class InspectionIssueRow(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     lot_id: int
+    lot_code: str  # Human-readable identifier for display
     inspection_result: str  # 'Pass' | 'Fail' | 'Conditional'
     issue_flag: bool  # Always True in this view (filtered on issue_flag = TRUE)
 
@@ -88,6 +90,7 @@ class IncompleteLotRow(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     lot_id: int
+    lot_code: str  # Human-readable identifier for display
     start_date: date
     end_date: date | None = None
     has_production_data: bool

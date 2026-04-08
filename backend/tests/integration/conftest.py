@@ -279,25 +279,24 @@ def _delete_test_lots(session: Session) -> None:
     """
     # Resolve the lot_ids for the test codes (may be empty on a fresh DB).
     lot_ids = [
-        r[0]
-        for r in session.query(Lot.lot_id).filter(Lot.lot_code.in_(ALL_INT_CODES)).all()
+        r[0] for r in session.query(Lot.lot_id).filter(Lot.lot_code.in_(ALL_INT_CODES)).all()
     ]
     if not lot_ids:
         return
 
     # Delete child rows first to avoid FK violation on lot deletion.
-    session.query(ProductionRecord).filter(
-        ProductionRecord.lot_id.in_(lot_ids)
-    ).delete(synchronize_session=False)
-    session.query(InspectionRecord).filter(
-        InspectionRecord.lot_id.in_(lot_ids)
-    ).delete(synchronize_session=False)
-    session.query(ShippingRecord).filter(
-        ShippingRecord.lot_id.in_(lot_ids)
-    ).delete(synchronize_session=False)
-    session.query(DataCompleteness).filter(
-        DataCompleteness.lot_id.in_(lot_ids)
-    ).delete(synchronize_session=False)
+    session.query(ProductionRecord).filter(ProductionRecord.lot_id.in_(lot_ids)).delete(
+        synchronize_session=False
+    )
+    session.query(InspectionRecord).filter(InspectionRecord.lot_id.in_(lot_ids)).delete(
+        synchronize_session=False
+    )
+    session.query(ShippingRecord).filter(ShippingRecord.lot_id.in_(lot_ids)).delete(
+        synchronize_session=False
+    )
+    session.query(DataCompleteness).filter(DataCompleteness.lot_id.in_(lot_ids)).delete(
+        synchronize_session=False
+    )
     session.query(Lot).filter(Lot.lot_id.in_(lot_ids)).delete(synchronize_session=False)
     session.commit()
 

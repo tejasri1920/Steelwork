@@ -39,9 +39,7 @@ class TestIntLotSummary:
     Verifies the aggregated cross-domain view includes the seeded lots.
     """
 
-    def test_returns_all_seeded_lots(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_returns_all_seeded_lots(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         The lot-summary report must include a row for each of INT-A through INT-D.
 
@@ -54,9 +52,7 @@ class TestIntLotSummary:
         # All four seeded lot_ids must appear in the report
         assert set(pg_seed_db.values()).issubset(response_lot_ids)
 
-    def test_lot_a_row_has_correct_totals(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_lot_a_row_has_correct_totals(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         The INT-A summary row must reflect 500 units produced, no issues,
         Delivered shipment, and 100% completeness.
@@ -89,9 +85,7 @@ class TestIntLotSummary:
         assert row["any_issues"] is None
         assert row["issue_count"] is None
 
-    def test_lot_c_flagged_in_summary(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_lot_c_flagged_in_summary(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         INT-C has a Fail inspection (any_issues=True) and an On Hold shipment.
 
@@ -114,9 +108,7 @@ class TestIntInspectionIssues:
     Only lots with issue_flag=True should appear.
     """
 
-    def test_only_flagged_lots_returned(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_only_flagged_lots_returned(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         The inspection-issues report must include INT-C (issue_flag=True) and must
         NOT include INT-A (issue_flag=False) or INT-B (no inspection).
@@ -132,9 +124,7 @@ class TestIntInspectionIssues:
         assert pg_seed_db["INT-A"] not in response_lot_ids
         assert pg_seed_db["INT-B"] not in response_lot_ids
 
-    def test_lot_c_issue_details(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_lot_c_issue_details(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         INT-C's row must have issue_flag=True, Fail result, and On Hold status.
 
@@ -187,16 +177,12 @@ class TestIntIncompleteLots:
         response = pg_client.get("/api/v1/reports/incomplete-lots")
         assert response.status_code == 200
         rows = response.json()
-        int_rows = [
-            r for r in rows if r["lot_id"] in (pg_seed_db["INT-B"], pg_seed_db["INT-D"])
-        ]
+        int_rows = [r for r in rows if r["lot_id"] in (pg_seed_db["INT-B"], pg_seed_db["INT-D"])]
         assert len(int_rows) == 2
         ids_in_order = [r["lot_id"] for r in int_rows]
         assert ids_in_order.index(pg_seed_db["INT-D"]) < ids_in_order.index(pg_seed_db["INT-B"])
 
-    def test_completeness_scores_are_correct(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_completeness_scores_are_correct(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         INT-B: ~67%, INT-D: 0% — values driven by real PostgreSQL triggers.
 
@@ -206,16 +192,10 @@ class TestIntIncompleteLots:
         assert response.status_code == 200
         rows = {r["lot_id"]: r for r in response.json()}
 
-        assert float(rows[pg_seed_db["INT-B"]]["overall_completeness"]) == pytest.approx(
-            67, abs=1
-        )
-        assert float(rows[pg_seed_db["INT-D"]]["overall_completeness"]) == pytest.approx(
-            0, abs=1
-        )
+        assert float(rows[pg_seed_db["INT-B"]]["overall_completeness"]) == pytest.approx(67, abs=1)
+        assert float(rows[pg_seed_db["INT-D"]]["overall_completeness"]) == pytest.approx(0, abs=1)
 
-    def test_missing_data_flags(
-        self, pg_client: TestClient, pg_seed_db: dict
-    ) -> None:
+    def test_missing_data_flags(self, pg_client: TestClient, pg_seed_db: dict) -> None:
         """
         has_* flags must accurately reflect which domains are absent.
 

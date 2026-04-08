@@ -41,6 +41,19 @@ export default defineConfig({
     },
   },
 
+  preview: {
+    // vite preview serves the production build (dist/) for e2e tests.
+    // It needs the same /api proxy as the dev server so Playwright can reach
+    // the test backend.  process.env is evaluated at server startup, so
+    // VITE_DEV_PROXY_TARGET set in the e2e conftest is picked up correctly.
+    proxy: {
+      '/api': {
+        target: process.env.VITE_DEV_PROXY_TARGET ?? 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
+
   // ── Vitest configuration ────────────────────────────────────────────────────
   // Vitest reads this section when you run `npm run test` or `vitest`.
   test: {

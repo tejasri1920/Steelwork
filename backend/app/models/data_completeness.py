@@ -57,9 +57,7 @@ class DataCompleteness(Base):
     has_inspection_data = Column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
-    has_shipping_data = Column(
-        Boolean, nullable=False, default=False, server_default=text("false")
-    )
+    has_shipping_data = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
     # Numeric(5,2) stores up to 999.99 — sufficient for a 0–100 percentage.
     # Using Numeric (not Float) avoids floating-point rounding errors.

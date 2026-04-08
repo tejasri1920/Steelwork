@@ -60,7 +60,7 @@ export default function InspectionIssuesTable({ rows }: InspectionIssuesTablePro
 
             return (
               <tr key={idx} className={rowClass}>
-                <td className="px-4 py-2 font-medium">{row.lot_id}</td>
+                <td className="px-4 py-2 font-medium">{row.lot_code}</td>
                 <td className="px-4 py-2">
                   <span className={row.inspection_result === 'Fail' ? 'text-red-600 font-semibold' : ''}>
                     {row.inspection_result}

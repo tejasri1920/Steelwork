@@ -67,9 +67,9 @@ export default function LotSummaryTable({ rows }: LotSummaryTableProps) {
         <tbody className="divide-y divide-gray-100">
           {rows.map((row) => (
             <tr key={row.lot_id} className="hover:bg-gray-50">
-              {/* Lot ID links to the full detail page (AC2, AC9) */}
+              {/* Lot code links to the full detail page (AC2, AC9) */}
               <td className="px-4 py-2 font-medium text-blue-600 hover:underline">
-                <Link to={`/lots/${row.lot_id}`}>{row.lot_id}</Link>
+                <Link to={`/lots/${row.lot_code}`}>{row.lot_code}</Link>
               </td>
               <td className="px-4 py-2">{dash(row.start_date)}</td>
               <td className="px-4 py-2">{dash(row.end_date)}</td>

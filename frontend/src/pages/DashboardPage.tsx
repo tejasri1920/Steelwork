@@ -42,9 +42,9 @@ type DashboardTab = 'summary' | 'inspection-issues' | 'line-issues' | 'incomplet
 
 /** Tab metadata used to render the tab bar. */
 const TABS: { id: DashboardTab; label: string }[] = [
-  { id: 'summary', label: 'Summary' },
+  { id: 'summary', label: 'Lot Summary' },
   { id: 'inspection-issues', label: 'Inspection Issues' },
-  { id: 'line-issues', label: 'Line Issues' },
+  { id: 'line-issues', label: 'Issues by Line' },
   { id: 'incomplete-lots', label: 'Incomplete Lots' },
 ];
 
@@ -71,7 +71,13 @@ export default function DashboardPage() {
     data: summaryRows = [],
     isLoading: summaryLoading,
     error: summaryError,
-  } = useQuery({ queryKey: ['lot-summary'], queryFn: fetchLotSummary });
+  } = useQuery({
+    queryKey: ['lot-summary', startDate, endDate],
+    queryFn: () => fetchLotSummary({
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+    }),
+  });
 
   const {
     data: issueRows = [],
@@ -112,7 +118,7 @@ export default function DashboardPage() {
       {/* Page title */}
       <h1 className="text-2xl font-bold text-gray-800 mb-4">Operations Dashboard</h1>
 
-      {/* Date range filter (AC3) — filters the lots list, not the report tabs */}
+      {/* Date range filter (AC3) — filters the Lot Summary tab by lot start_date */}
       <div className="bg-white border border-gray-200 rounded p-4 mb-6 flex flex-wrap items-center gap-4">
         <span className="text-sm font-medium text-gray-600">Filter lots by date:</span>
         <DateRangeFilter
@@ -120,18 +126,16 @@ export default function DashboardPage() {
           endDate={endDate}
           onChange={handleDateChange}
         />
-        {(startDate || endDate) && (
-          <span className="text-xs text-gray-400 italic">
-            (Date filter applies to the lots list — navigate to a lot detail to see filtered results)
-          </span>
-        )}
       </div>
 
-      {/* Tab bar */}
-      <div className="flex border-b border-gray-200 mb-6">
+      {/* Tab bar — role="tablist" + role="tab" for proper ARIA semantics and
+           Playwright get_by_role("tab") selectors in e2e tests. */}
+      <div role="tablist" className="flex border-b border-gray-200 mb-6">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
+            role="tab"
+            aria-selected={activeTab === id}
             onClick={() => setActiveTab(id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === id

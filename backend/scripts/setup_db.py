@@ -49,13 +49,14 @@ if DB_URL.startswith("postgres://"):
 # ── Imports ────────────────────────────────────────────────────────────────────
 from sqlalchemy import create_engine, text  # noqa: E402
 
-# Import ALL models so Base.metadata knows about every table before create_all().
-from app.database import Base  # noqa: E402
+import app.models.data_completeness  # noqa: E402, F401
+import app.models.inspection  # noqa: E402, F401
 import app.models.lot  # noqa: E402, F401
 import app.models.production  # noqa: E402, F401
-import app.models.inspection  # noqa: E402, F401
 import app.models.shipping  # noqa: E402, F401
-import app.models.data_completeness  # noqa: E402, F401
+
+# Import ALL models so Base.metadata knows about every table before create_all().
+from app.database import Base  # noqa: E402
 
 # ── Engine ─────────────────────────────────────────────────────────────────────
 # search_path=ops means unqualified table names (e.g. "lots") resolve to ops.lots.
@@ -239,7 +240,7 @@ with engine.connect() as conn:
 
 print()
 print("Done! Database is ready.")
-print(f"  Schema:  ops")
-print(f"  Tables:  lots, production_records, inspection_records,")
-print(f"           shipping_records, data_completeness")
-print(f"  Triggers: updated_at, init_completeness, refresh_completeness")
+print("  Schema:  ops")
+print("  Tables:  lots, production_records, inspection_records,")
+print("           shipping_records, data_completeness")
+print("  Triggers: updated_at, init_completeness, refresh_completeness")
