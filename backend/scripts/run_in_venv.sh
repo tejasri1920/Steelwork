@@ -35,7 +35,11 @@ shift
 ARGS=("$@")
 
 # ── 1. Try PATH first (CI scenario) ───────────────────────────────────────────
-if command -v "$TOOL" &>/dev/null; then
+# Skip PATH for the bare `python` command: the system Python (e.g. C:\Python313)
+# is frequently found first on Windows and lacks project dev dependencies.
+# All other tools (ruff, mypy, pytest, pip-licenses) are safe to resolve via PATH
+# because they are installed into the venv whose bin/ CI adds to GITHUB_PATH.
+if [ "$TOOL" != "python" ] && command -v "$TOOL" &>/dev/null; then
     exec "$TOOL" "${ARGS[@]}"
 fi
 
