@@ -15,6 +15,7 @@
 #   - Eager loading (.options(joinedload(...))) is used to avoid N+1 query problems
 #     when accessing child relationships.
 
+import logging
 from datetime import date
 from decimal import Decimal
 
@@ -25,6 +26,9 @@ from app.models.inspection import InspectionRecord
 from app.models.lot import Lot
 from app.models.production import ProductionRecord
 from app.models.shipping import ShippingRecord
+
+# Module-level logger.  Name follows __name__ convention: "app.repositories.lot_repo".
+logger = logging.getLogger(__name__)
 
 
 def get_lots(
@@ -64,7 +68,14 @@ def get_lots(
     if end_date is not None:
         query = query.filter(Lot.start_date <= end_date)
 
-    return query.order_by(Lot.lot_id).all()
+    results = query.order_by(Lot.lot_id).all()
+    logger.debug(
+        "get_lots(start_date=%s, end_date=%s) → %d lot(s)",
+        start_date,
+        end_date,
+        len(results),
+    )
+    return results
 
 
 def get_lot_by_code(db: Session, lot_code: str) -> Lot | None:
@@ -88,7 +99,7 @@ def get_lot_by_code(db: Session, lot_code: str) -> Lot | None:
     """
     # joinedload fetches all four relationships in the same query using LEFT OUTER JOINs,
     # avoiding N+1 queries when the router accesses lot.production_records etc.
-    return (
+    result = (
         db.query(Lot)
         .options(
             joinedload(Lot.production_records),  # AC9: production detail
@@ -99,6 +110,11 @@ def get_lot_by_code(db: Session, lot_code: str) -> Lot | None:
         .filter(Lot.lot_code == lot_code)
         .first()  # Returns None if the lot_code doesn't exist → router raises 404
     )
+    if result is None:
+        logger.debug("get_lot_by_code(%r) → not found", lot_code)
+    else:
+        logger.debug("get_lot_by_code(%r) → lot_id=%d", lot_code, result.lot_id)
+    return result
 
 
 def refresh_data_completeness(db: Session, lot_id: int) -> None:
