@@ -18,6 +18,7 @@
 # The router validates the dicts against Pydantic report schemas.
 
 from collections import defaultdict
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.orm import Session, joinedload
@@ -29,7 +30,11 @@ from app.models.production import ProductionRecord
 from app.models.shipping import ShippingRecord
 
 
-def get_lot_summary(db: Session) -> list[dict]:
+def get_lot_summary(
+    db: Session,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[dict]:
     """
     Return one aggregated row per lot: total production, any issues, latest shipment.
 
@@ -66,7 +71,8 @@ def get_lot_summary(db: Session) -> list[dict]:
     Space complexity: O(N).
     """
     # Single query with four joinedloads — one SQL trip, no N+1 queries.
-    lots = (
+    # Optional date-range filter mirrors the start_date filter on the lots list.
+    query = (
         db.query(Lot)
         .options(
             joinedload(Lot.production_records),
@@ -75,8 +81,12 @@ def get_lot_summary(db: Session) -> list[dict]:
             joinedload(Lot.data_completeness),
         )
         .order_by(Lot.lot_id)
-        .all()
     )
+    if start_date is not None:
+        query = query.filter(Lot.start_date >= start_date)
+    if end_date is not None:
+        query = query.filter(Lot.start_date <= end_date)
+    lots = query.all()
 
     result = []
     for lot in lots:
@@ -109,6 +119,7 @@ def get_lot_summary(db: Session) -> list[dict]:
         result.append(
             {
                 "lot_id": lot.lot_id,
+                "lot_code": lot.lot_code,
                 "start_date": lot.start_date,
                 "end_date": lot.end_date,
                 "total_produced": total_produced,
@@ -156,10 +167,11 @@ def get_inspection_issues(db: Session) -> list[dict]:
     Time complexity:  O(F) where F = number of flagged inspection records.
     Space complexity: O(F).
     """
-    # outerjoin: InspectionRecord LEFT JOIN ShippingRecord on lot_id.
-    # Rows where no shipping record exists return (InspectionRecord, None).
+    # Join Lot to retrieve lot_code for display; LEFT JOIN ShippingRecord so that
+    # flagged lots with no shipment record still appear with NULL shipment columns.
     rows = (
-        db.query(InspectionRecord, ShippingRecord)
+        db.query(InspectionRecord, ShippingRecord, Lot)
+        .join(Lot, InspectionRecord.lot_id == Lot.lot_id)
         .outerjoin(ShippingRecord, InspectionRecord.lot_id == ShippingRecord.lot_id)
         .filter(InspectionRecord.issue_flag == True)  # noqa: E712 — SQLAlchemy needs ==
         .order_by(InspectionRecord.lot_id, ShippingRecord.ship_date)
@@ -167,10 +179,11 @@ def get_inspection_issues(db: Session) -> list[dict]:
     )
 
     result = []
-    for insp, ship in rows:
+    for insp, ship, lot in rows:
         result.append(
             {
                 "lot_id": insp.lot_id,
+                "lot_code": lot.lot_code,
                 "inspection_result": insp.inspection_result,
                 "issue_flag": insp.issue_flag,
                 # ship is None when no ShippingRecord row matched (LEFT JOIN null).
@@ -226,6 +239,7 @@ def get_incomplete_lots(db: Session) -> list[dict]:
         result.append(
             {
                 "lot_id": lot.lot_id,
+                "lot_code": lot.lot_code,
                 "start_date": lot.start_date,
                 "end_date": lot.end_date,
                 "has_production_data": dc.has_production_data,

@@ -109,8 +109,9 @@ export async function fetchLotByCode(lotCode: string): Promise<LotDetail> {
  * AC8:  latest_status shows shipment state.
  * AC10: overall_completeness per lot.
  */
-export async function fetchLotSummary(): Promise<LotSummaryRow[]> {
-  const response = await apiClient.get<LotSummaryRow[]>('/api/v1/reports/lot-summary');
+export async function fetchLotSummary(params?: LotListParams): Promise<LotSummaryRow[]> {
+  // Optional start_date / end_date query params mirror the lot-list date filter (AC3).
+  const response = await apiClient.get<LotSummaryRow[]>('/api/v1/reports/lot-summary', { params });
   return response.data;
 }
 

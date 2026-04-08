@@ -37,6 +37,7 @@ pytest-cov       = "^5.0.0"   # Code coverage reports
 ruff             = "^0.5.0"   # Fast Python linter and formatter (replaces flake8 + black + isort)
 mypy             = "^1.10.0"  # Static type checker
 pip-licenses     = "^5.0.0"  # Reports license metadata for all installed packages (used by license-check-gpl hook)
+pytest-playwright = "^0.5.0" # Playwright browser automation for end-to-end tests
 
 [build-system]
 requires      = ["poetry-core"]

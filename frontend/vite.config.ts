@@ -30,9 +30,26 @@ export default defineConfig({
       // Forward any request starting with /api to the FastAPI backend.
       // This mirrors the Nginx proxy_pass configuration used in production.
       // Without this, the browser would block cross-origin requests.
+      //
+      // VITE_DEV_PROXY_TARGET can be overridden via environment variable so that
+      // e2e tests can point the dev-server proxy at a separate test backend
+      // (e.g. port 8001) without changing this file.
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_DEV_PROXY_TARGET ?? 'http://localhost:8000',
         changeOrigin: true,   // Rewrites the Host header to match the target
+      },
+    },
+  },
+
+  preview: {
+    // vite preview serves the production build (dist/) for e2e tests.
+    // It needs the same /api proxy as the dev server so Playwright can reach
+    // the test backend.  process.env is evaluated at server startup, so
+    // VITE_DEV_PROXY_TARGET set in the e2e conftest is picked up correctly.
+    proxy: {
+      '/api': {
+        target: process.env.VITE_DEV_PROXY_TARGET ?? 'http://localhost:8000',
+        changeOrigin: true,
       },
     },
   },

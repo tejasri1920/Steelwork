@@ -17,7 +17,9 @@
 #   AC8  — shipment status overview (lot-summary endpoint)
 #   AC10 — completeness scores in lot-summary and incomplete-lots
 
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -42,18 +44,34 @@ router = APIRouter(
     description=(
         "Returns one row per lot aggregating production totals, inspection issue flags, "
         "and latest shipment status. Designed for meeting discussions. "
-        "Supports AC1, AC7, AC8, AC10."
+        "Optional start_date / end_date query params filter by lot start_date. "
+        "Supports AC1, AC3, AC7, AC8, AC10."
     ),
 )
-def lot_summary(db: Session = Depends(get_db)) -> list[LotSummaryRow]:
+def lot_summary(
+    start_date: date | None = Query(
+        default=None,
+        description="Include only lots whose start_date ≥ this date (ISO-8601).",
+    ),
+    end_date: date | None = Query(
+        default=None,
+        description="Include only lots whose start_date ≤ this date (ISO-8601).",
+    ),
+    db: Session = Depends(get_db),
+) -> list[LotSummaryRow]:
     """
-    Return the aggregated operational lot summary.
+    Return the aggregated operational lot summary, optionally filtered by date range.
+
+    Query parameters:
+        start_date: Filter — only lots with start_date ≥ this value.
+        end_date:   Filter — only lots with start_date ≤ this value.
 
     Returns:
         HTTP 200 with a JSON array of LotSummaryRow objects.
-        Empty array [] if no lots exist.
+        Empty array [] if no lots match the filter.
 
     AC1:  Shows all three data domains side-by-side for each lot.
+    AC3:  Date range filter wired to this endpoint.
     AC7:  One row per lot — clean format for meeting discussions.
     AC8:  latest_status column shows current shipment state.
     AC10: overall_completeness included in each row.
@@ -61,7 +79,10 @@ def lot_summary(db: Session = Depends(get_db)) -> list[LotSummaryRow]:
     # model_validate converts each plain dict from the repo into a typed Pydantic
     # object, satisfying mypy's return type check and giving FastAPI a fully
     # validated object to serialise.
-    return [LotSummaryRow.model_validate(row) for row in report_repo.get_lot_summary(db)]
+    return [
+        LotSummaryRow.model_validate(row)
+        for row in report_repo.get_lot_summary(db, start_date=start_date, end_date=end_date)
+    ]
 
 
 @router.get(

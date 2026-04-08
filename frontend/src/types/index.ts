@@ -113,6 +113,7 @@ export interface LotDetail {
  */
 export interface LotSummaryRow {
   lot_id: number;
+  lot_code: string;                // Human-readable identifier, e.g. "LOT-001"
   start_date: string;
   end_date: string | null;
   total_produced: number | null;   // null if no production records
@@ -129,6 +130,7 @@ export interface LotSummaryRow {
  */
 export interface InspectionIssueRow {
   lot_id: number;
+  lot_code: string;                // Human-readable identifier for display
   inspection_result: string;
   issue_flag: boolean;             // Always true in this report
   shipment_status: string | null;  // null if no shipping record yet
@@ -142,6 +144,7 @@ export interface InspectionIssueRow {
  */
 export interface IncompleteLotRow {
   lot_id: number;
+  lot_code: string;                // Human-readable identifier for display
   start_date: string;
   end_date: string | null;
   has_production_data: boolean;

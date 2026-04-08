@@ -8,7 +8,7 @@
 #
 # Supports AC4 (missing data visibility) and AC10 (completeness score).
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, func, text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -46,14 +46,24 @@ class DataCompleteness(Base):
     # lot_id is BOTH the primary key and the foreign key (1:1 with lots)
     lot_id = Column(Integer, ForeignKey("lots.lot_id"), primary_key=True)
 
-    # Three boolean flags — one per data domain
-    has_production_data = Column(Boolean, nullable=False, default=False)
-    has_inspection_data = Column(Boolean, nullable=False, default=False)
-    has_shipping_data = Column(Boolean, nullable=False, default=False)
+    # Three boolean flags — one per data domain.
+    # server_default="false" adds DEFAULT FALSE to the column DDL so that
+    # PostgreSQL triggers can INSERT just lot_id and have the other columns
+    # default correctly.  The Python-side default=False keeps SQLite unit tests
+    # working (SQLite ignores server_default in create_all).
+    has_production_data = Column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    has_inspection_data = Column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    has_shipping_data = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
     # Numeric(5,2) stores up to 999.99 — sufficient for a 0–100 percentage.
     # Using Numeric (not Float) avoids floating-point rounding errors.
-    overall_completeness = Column(Numeric(5, 2), nullable=False, default=0)
+    overall_completeness = Column(
+        Numeric(5, 2), nullable=False, default=0, server_default=text("0")
+    )
 
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

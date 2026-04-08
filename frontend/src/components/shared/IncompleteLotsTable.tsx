@@ -58,7 +58,7 @@ export default function IncompleteLotsTable({ rows }: IncompleteLotsTableProps) 
         <tbody className="divide-y divide-gray-100">
           {rows.map((row) => (
             <tr key={row.lot_id} className="hover:bg-gray-50">
-              <td className="px-4 py-2 font-medium">{row.lot_id}</td>
+              <td className="px-4 py-2 font-medium">{row.lot_code}</td>
               <td className="px-4 py-2">{dash(row.start_date)}</td>
               <td className="px-4 py-2">{dash(row.end_date)}</td>
               <td className="px-4 py-2 text-center">
