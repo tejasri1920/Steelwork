@@ -64,6 +64,7 @@ if not TEST_DB_URL:
 # engine directly from TEST_DATABASE_URL.
 from app.database import get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.data_completeness import DataCompleteness  # noqa: E402
 from app.models.inspection import InspectionRecord  # noqa: E402
 from app.models.lot import Lot  # noqa: E402
 from app.models.production import ProductionRecord  # noqa: E402
@@ -249,7 +250,14 @@ def pg_seed_db():
         # Do NOT close the session here — yield keeps it alive for teardown.
         pass
 
-    yield  # All integration tests in this session run here
+    # Yield a mapping of lot_code → lot_id so report tests can identify
+    # which rows in the response belong to the seeded test lots.
+    yield {
+        INT_LOT_A: lot_a.lot_id,
+        INT_LOT_B: lot_b.lot_id,
+        INT_LOT_C: lot_c.lot_id,
+        INT_LOT_D: lot_d.lot_id,
+    }
 
     # ── Teardown ───────────────────────────────────────────────────────────────
     _delete_test_lots(session)
@@ -258,17 +266,39 @@ def pg_seed_db():
 
 def _delete_test_lots(session: Session) -> None:
     """
-    Remove all test lots created by this suite from the database.
+    Remove all test lots and their child records from the database.
 
-    ON DELETE CASCADE in the schema propagates deletes to production_records,
-    inspection_records, shipping_records, and data_completeness automatically.
+    The ORM foreign keys are ON DELETE RESTRICT (default), so child records
+    must be deleted before the parent lot rows.  Order matters:
+        1. production_records, inspection_records, shipping_records (children)
+        2. data_completeness (child via FK from lots)
+        3. lots (parent)
 
     Time complexity:  O(k) where k = number of test lots (constant = 4).
     Space complexity: O(1).
     """
-    session.query(Lot).filter(Lot.lot_code.in_(ALL_INT_CODES)).delete(
-        synchronize_session=False  # Skip updating the SQLAlchemy identity map
-    )
+    # Resolve the lot_ids for the test codes (may be empty on a fresh DB).
+    lot_ids = [
+        r[0]
+        for r in session.query(Lot.lot_id).filter(Lot.lot_code.in_(ALL_INT_CODES)).all()
+    ]
+    if not lot_ids:
+        return
+
+    # Delete child rows first to avoid FK violation on lot deletion.
+    session.query(ProductionRecord).filter(
+        ProductionRecord.lot_id.in_(lot_ids)
+    ).delete(synchronize_session=False)
+    session.query(InspectionRecord).filter(
+        InspectionRecord.lot_id.in_(lot_ids)
+    ).delete(synchronize_session=False)
+    session.query(ShippingRecord).filter(
+        ShippingRecord.lot_id.in_(lot_ids)
+    ).delete(synchronize_session=False)
+    session.query(DataCompleteness).filter(
+        DataCompleteness.lot_id.in_(lot_ids)
+    ).delete(synchronize_session=False)
+    session.query(Lot).filter(Lot.lot_id.in_(lot_ids)).delete(synchronize_session=False)
     session.commit()
 
 
