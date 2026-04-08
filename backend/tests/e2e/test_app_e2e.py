@@ -165,7 +165,10 @@ class TestLotSummaryTab:
         AC8: Shipment status is visible without navigating to the detail page.
         """
         page.goto("/")
-        expect(page.get_by_text("Delivered")).to_be_visible(timeout=_TIMEOUT)
+        # Use .first() because multiple lots may have "Delivered" status in the table.
+        # Strict mode requires exactly one match without .first(); AC8 only requires
+        # that at least one Delivered status is visible.
+        expect(page.get_by_text("Delivered").first).to_be_visible(timeout=_TIMEOUT)
 
 
 class TestReportTabs:
