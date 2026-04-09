@@ -1,0 +1,67 @@
+# .github/workflows/deploy.yml
+#
+# Continuous Deployment workflow.
+#
+# Triggered automatically after the CI workflow completes successfully on the
+# main branch.  This ensures we only deploy code that has passed all pre-commit
+# checks (ruff, mypy, pytest) and the Docker build smoke test.
+#
+# What it does:
+#   1. Calls the Render Deploy Hook URL to trigger a new deployment.
+#
+# Why a deploy hook instead of the Render GitHub App?
+#   A deploy hook is a plain HTTPS POST — no OAuth scopes, no third-party app
+#   installation, and no access to repository contents.  It is the simplest
+#   and most secure way to trigger a Render deployment from GitHub Actions.
+#
+# Setup (one-time, done in the Render dashboard):
+#   1. Render dashboard → your backend service → Settings → Deploy Hook
+#   2. Copy the hook URL (looks like https://api.render.com/deploy/srv-xxx?key=yyy)
+#   3. GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+#      Name:  RENDER_DEPLOY_HOOK_URL
+#      Value: <paste the URL>
+
+name: Deploy to Render
+
+permissions:
+  contents: read
+
+on:
+  workflow_run:
+    # Trigger only after the CI workflow finishes…
+    workflows: ["CI"]
+    # …and only when it ran against a push to main (not a PR).
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Trigger Render deployment
+    # Only run when CI succeeded — never deploy broken code.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      # A lightweight checkout is needed so the job has a working directory.
+      # We don't need the full history — fetch-depth: 1 is sufficient.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ── 2. Trigger Render deploy hook ────────────────────────────────────────
+      # POST to the deploy hook URL stored in the repository secret.
+      # --fail  : curl exits non-zero if the server returns a 4xx/5xx response.
+      # --silent: suppress progress output (keeps the log clean).
+      # --show-error: still print the error message on failure (overrides --silent).
+      #
+      # Render responds immediately with 201 Created; the actual build runs
+      # asynchronously on Render's infrastructure.
+      - name: Deploy to Render
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo "Render deployment triggered successfully."
