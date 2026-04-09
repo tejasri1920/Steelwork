@@ -1,0 +1,54 @@
+# backend/.dockerignore
+#
+# Files and directories to exclude from the Docker build context.
+#
+# Docker sends everything in the build context to the daemon before running
+# the Dockerfile instructions.  Excluding large or irrelevant paths makes
+# `docker build` faster and prevents secrets from leaking into the image.
+
+# ── Python artifacts ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Tests (not needed at runtime) ────────────────────────────────────────────
+tests/
+
+# ── Development config ────────────────────────────────────────────────────────
+.pre-commit-config.yaml
+pyproject.toml
+poetry.lock
+poetry.toml
+
+# ── Secrets and local env files ───────────────────────────────────────────────
+# NEVER bake .env files into an image — use Docker Compose env_file or
+# platform environment variables (e.g., Render "Environment" tab) instead.
+.env
+.env.*
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+*.log.*
+
+# ── IDE and OS metadata ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Scripts ───────────────────────────────────────────────────────────────────
+scripts/

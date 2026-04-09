@@ -26,6 +26,7 @@ sqlalchemy       = "^2.0.0"     # ORM (Object-Relational Mapper)
 psycopg2-binary  = "^2.9.9"     # PostgreSQL adapter
 pydantic-settings = "^2.3.0"   # Typed settings from environment variables
 python-dotenv    = "^1.0.0"     # .env file loading
+sentry-sdk       = "^2.0.0"     # Error monitoring and alerting (production observability)
 
 # ── Development dependencies ───────────────────────────────────────────────────
 # These are only installed locally (not in Docker).

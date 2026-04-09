@@ -18,6 +18,7 @@
 
 import logging
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -90,6 +91,25 @@ async def startup_event() -> None:
         # In tests TESTING=true so this branch is skipped; caplog captures logs
         # directly from the loggers without needing file or stream handlers.
         setup_logging()
+
+        # Initialise Sentry error monitoring when a DSN is configured.
+        # Sentry captures unhandled exceptions and sends them to sentry.io,
+        # giving us real-time alerts for production errors.
+        #
+        # Options:
+        #   send_default_pii=False  — never attach user IP / cookies to events (GDPR safe)
+        #   traces_sample_rate=0.0  — disable performance tracing (we only want error alerts)
+        #   enable_logs=False       — don't forward Python log records to Sentry
+        #
+        # When sentry_dsn is None (local dev), this is a no-op.
+        if settings.sentry_dsn:
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                send_default_pii=False,
+                traces_sample_rate=0.0,
+                enable_logs=False,
+            )
+            logger.info("Sentry initialised")
 
     logger.info(
         "Application startup complete | version=%s | testing=%s",
