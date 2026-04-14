@@ -132,11 +132,12 @@ async def shutdown_event() -> None:
 # ── Health check ──────────────────────────────────────────────────────────────
 
 
-@app.get(
+@app.api_route(
     "/health",
+    methods=["GET", "HEAD"],
     tags=["health"],
     summary="Health check — returns 200 OK if the server is up",
-    description="Used by Docker Compose and load balancers to verify the backend is running.",
+    description="Used by UptimeRobot (HEAD), Docker Compose, and load balancers to verify the backend is running.",
 )
 def health_check() -> dict[str, str]:
     """
