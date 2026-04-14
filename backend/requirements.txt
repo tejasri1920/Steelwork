@@ -17,3 +17,4 @@ sqlalchemy>=2.0.0         # ORM: maps Python classes to database tables
 psycopg2-binary>=2.9.9    # PostgreSQL driver: lets SQLAlchemy talk to Postgres (binary = no compilation needed)
 pydantic-settings>=2.3.0  # Reads .env / environment variables into a typed Settings class
 python-dotenv>=1.0.0      # Loads .env file into environment (used by pydantic-settings)
+sentry-sdk>=2.0.0         # Error monitoring: captures exceptions and sends them to Sentry.io

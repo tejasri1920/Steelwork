@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # Valid values: "debug", "info", "warning", "error", "critical"
     log_level: str = "info"
 
+    # ── Sentry ────────────────────────────────────────────────────────────────
+    # Optional DSN (Data Source Name) for Sentry error monitoring.
+    # Obtain your DSN from https://sentry.io → Project Settings → Client Keys.
+    # When absent (None), Sentry is disabled — safe for local development.
+    # In production, set this in your .env file or Render environment variables.
+    sentry_dsn: str | None = None
+
     # ── Test mode ─────────────────────────────────────────────────────────────
     # Set TESTING=true in your shell to switch the database engine to SQLite.
     # SQLite is a lightweight file-based database that runs in memory during tests.

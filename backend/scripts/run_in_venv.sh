@@ -35,12 +35,23 @@ shift
 ARGS=("$@")
 
 # ── 1. Try PATH first (CI scenario) ───────────────────────────────────────────
-# Skip PATH for the bare `python` command: the system Python (e.g. C:\Python313)
-# is frequently found first on Windows and lacks project dev dependencies.
-# All other tools (ruff, mypy, pytest, pip-licenses) are safe to resolve via PATH
-# because they are installed into the venv whose bin/ CI adds to GITHUB_PATH.
-if [ "$TOOL" != "python" ] && command -v "$TOOL" &>/dev/null; then
-    exec "$TOOL" "${ARGS[@]}"
+# All tools (ruff, mypy, pytest, pip-licenses, python) are resolved via PATH
+# when the venv's bin/ or Scripts/ directory is on PATH.
+#
+# For the bare `python` command we add an extra guard: only use the PATH python
+# if it resolves to a path that looks like a virtualenv (contains "virtualenvs",
+# ".venv", or "venv").  This prevents accidentally picking up the system Python
+# (e.g. C:\Python313) that lacks the project's dev dependencies.
+#
+# In CI:  the workflow step "Add Poetry virtualenv to PATH" adds the venv bin/
+#         first, so the venv python is always found before any system python.
+# Locally: `export PATH="<venv>/Scripts:$PATH"` before running hooks achieves
+#          the same effect.
+if command -v "$TOOL" &>/dev/null; then
+    RESOLVED="$(command -v "$TOOL")"
+    if [ "$TOOL" != "python" ] || echo "$RESOLVED" | grep -qiE "(virtualenvs|/\.venv/|/venv/)"; then
+        exec "$TOOL" "${ARGS[@]}"
+    fi
 fi
 
 # ── 2. Discover Poetry virtualenv (local Windows scenario) ────────────────────
