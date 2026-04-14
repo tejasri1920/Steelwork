@@ -150,4 +150,5 @@ def health_check() -> dict[str, str]:
     A separate /health/db endpoint could be added later for DB liveness checks.
     """
     logger.debug("Health check requested")
+    1 / 0  # temporary Sentry smoke test — remove after verifying
     return {"status": "ok"}
