@@ -23,6 +23,7 @@
 #   more than once (e.g. on uvicorn auto-reload).
 
 import logging
+import tempfile
 from logging.handlers import RotatingFileHandler
 
 # Format used by both handlers.
@@ -35,7 +36,7 @@ _LOG_FORMAT = "%(asctime)s | %(levelname)s | %(filename)s:%(lineno)d | %(message
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"  # Drop milliseconds for readability
 
 
-def setup_logging(log_file: str = "app.log") -> None:
+def setup_logging(log_file: str = "") -> None:
     """
     Configure application-wide logging with a console and a rotating file handler.
 
@@ -44,9 +45,9 @@ def setup_logging(log_file: str = "app.log") -> None:
     without adding duplicates.
 
     Args:
-        log_file: Path for the rotating log file.  Defaults to "app.log" in the
-                  working directory.  Pass a tmp_path string in tests to avoid
-                  writing to the project directory.
+        log_file: Path for the rotating log file.  Defaults to "app.log" inside
+                  the platform temp directory (tempfile.gettempdir()), which is
+                  writable on Linux containers, macOS, and Windows alike.
 
     Handler summary:
         console_handler  — StreamHandler,        level=WARNING,  output=stderr
@@ -62,6 +63,17 @@ def setup_logging(log_file: str = "app.log") -> None:
     Time complexity:  O(1) — fixed number of handlers regardless of runtime state.
     Space complexity: O(1) — no collections created at runtime.
     """
+    # Resolve the default log path using the platform temp dir.
+    # tempfile.gettempdir() returns:
+    #   /tmp         on Linux (Docker containers)
+    #   /var/folders/ on macOS
+    #   C:\Users\...\AppData\Local\Temp  on Windows
+    # This avoids PermissionError when the process runs as a non-root user in Docker.
+    if not log_file:
+        import os
+
+        log_file = os.path.join(tempfile.gettempdir(), "app.log")
+
     root = logging.getLogger()
 
     # Idempotency guard: basicConfig is a no-op when handlers already exist, but
