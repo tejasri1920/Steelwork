@@ -19,7 +19,7 @@ interface ImportMetaEnv {
    * - In local dev (no Docker): "http://localhost:8000" — direct connection to FastAPI.
    * Set in .env or .env.example as VITE_API_BASE_URL.
    */
-  readonly VITE_API_BASE_URL: string;
+  readonly VITE_API_BASE_URL?: string;
 }
 
 interface ImportMeta {

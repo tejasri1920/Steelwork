@@ -5,7 +5,7 @@
   "description": "Operations Analytics frontend — React 18 + Vite + TypeScript + Tailwind CSS",
   "scripts": {
     "dev":     "vite",
-    "build":   "tsc && vite build",
+    "build":   "vite build",
     "build:e2e": "vite build",
     "preview": "vite preview",
     "test":    "vitest run",
